@@ -1,44 +1,53 @@
-<script setup>
-defineProps({
-  msg: {
-    type: String,
-    required: true,
-  },
-})
-</script>
-
 <template>
-  <div class="greetings">
-    <h1 class="green">{{ msg }}</h1>
-    <h3>
-      You’ve successfully created a project with
-      <a href="https://vite.dev/" target="_blank" rel="noopener">Vite</a> +
-      <a href="https://vuejs.org/" target="_blank" rel="noopener">Vue 3</a>.
-    </h3>
+  <div>
+    <h1>Work Scheduler</h1>
+    <button @click="addEvent">Přidat událost</button>
   </div>
 </template>
 
-<style scoped>
+<script>
+import axios from 'axios'
+
+export default {
+  name: 'App',
+  methods: {
+    async addEvent() {
+      try {
+        // Odeslání HTTP POST požadavku na backend
+        const response = await axios.post('/backend/addEvent.php', {
+          date: '2025-04-23',
+          description: 'Plánování projektu',
+        })
+        console.log(response.data) // Zobrazení odpovědi v konzoli
+        alert(response.data.message) // Zobrazení zprávy uživateli
+      } catch (error) {
+        console.error('Došlo k chybě při přidávání události:', error)
+        alert('Chyba při přidávání události. Zkontrolujte backend.')
+      }
+    },
+  },
+}
+</script>
+
+<style>
+/* Jednoduché základní styly */
 h1 {
-  font-weight: 500;
-  font-size: 2.6rem;
-  position: relative;
-  top: -10px;
-}
-
-h3 {
-  font-size: 1.2rem;
-}
-
-.greetings h1,
-.greetings h3 {
   text-align: center;
+  margin-bottom: 20px;
 }
 
-@media (min-width: 1024px) {
-  .greetings h1,
-  .greetings h3 {
-    text-align: left;
-  }
+button {
+  display: block;
+  margin: 0 auto;
+  padding: 10px 20px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #45a049;
 }
 </style>
