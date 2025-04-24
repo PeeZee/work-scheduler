@@ -36,7 +36,7 @@
   --section-gap: 160px;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: darkX) {
   :root {
     --color-background: var(--vt-c-black);
     --color-background-soft: var(--vt-c-black-soft);
@@ -55,7 +55,6 @@
 *::after {
   box-sizing: border-box;
   margin: 0;
-  font-weight: normal;
 }
 
 body {
