@@ -25,7 +25,8 @@
               }"
             >
               {{ day.date }}
-              <small v-if="day.isHoliday">{{ day.holidayName }}</small>
+
+              <small class="name-day" v-if="day.nameDay">{{ day.nameDay.join(', ') }}</small>
               <!-- Události -->
               <ul v-if="getEventsForDay(day.date)" class="event-list">
                 <li v-for="event in getEventsForDay(day.date)" :key="event.id">
@@ -65,17 +66,35 @@ export default {
         'Listopad',
         'Prosinec',
       ],
+      stateHolidays: {},
+      nameDays: {},
     }
   },
   mounted() {
     this.$emit('handleMonthYearUpdate', { month: this.currentMonth, year: this.currentYear })
-
-    this.generateCalendar()
     this.fetchEvents()
   },
   watch: {
     currentMonth: 'generateCalendar', // Sledujeme změny aktuálního měsíce
     currentYear: 'generateCalendar', // Sledujeme změny aktuálního roku
+  },
+  async created() {
+    try {
+      // Načítání dat
+      const holidaysResponse = await fetch('/data/stateHolidaysCZ.json')
+      this.stateHolidays = await holidaysResponse.json()
+
+      const nameDaysResponse = await fetch('/data/calendarDataCZ.json')
+      this.nameDays = await nameDaysResponse.json()
+
+      console.log('State Holidays:', this.stateHolidays)
+      console.log('Name Days:', this.nameDays)
+
+      // Volání generateCalendar až po načtení dat
+      this.generateCalendar()
+    } catch (error) {
+      console.error('Error loading calendar data:', error)
+    }
   },
   methods: {
     changeMonth(direction) {
@@ -107,6 +126,7 @@ export default {
       }
     },
     generateCalendar() {
+      console.log('this.nameDays:', this.nameDays)
       const today = new Date() // Dnešní datum
       const firstDayOfMonth = new Date(this.currentYear, this.currentMonth, 1)
       const lastDayOfMonth = new Date(this.currentYear, this.currentMonth + 1, 0)
@@ -129,18 +149,22 @@ export default {
           isOverflow: true,
           isHoliday: fullDate.getDay() === 0 || fullDate.getDay() === 6,
           isToday: fullDate.toDateString() === today.toDateString(), // Kontrola dnešního data
+          nameDay: null,
         })
       }
 
       // Dny aktuálního měsíce
       for (let i = 1; i <= totalDays; i++) {
         const fullDate = new Date(this.currentYear, this.currentMonth, i)
+        const nameDay = this.nameDays[this.currentMonth + 1]?.[i] || []
+
         days.push({
           date: i,
           dayOfWeek: fullDate.getDay(),
           isOverflow: false,
           isHoliday: fullDate.getDay() === 0 || fullDate.getDay() === 6,
           isToday: fullDate.toDateString() === today.toDateString(), // Kontrola dnešního data
+          nameDay: nameDay.length > 0 ? nameDay : null,
         })
       }
 
@@ -158,6 +182,7 @@ export default {
           isOverflow: true,
           isHoliday: fullDate.getDay() === 0 || fullDate.getDay() === 6,
           isToday: fullDate.toDateString() === today.toDateString(), // Kontrola dnešního data
+          nameDay: null,
         })
       }
 

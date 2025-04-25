@@ -4,7 +4,7 @@
     <aside class="sidebar p-4">
       <div class="sidebar--month">{{ displayedMonth }}</div>
       <div class="sidebar--year">{{ currentYear }}</div>
-      <div class="sidebar--events-servis">
+      <div class="sidebar--events sidebar--events-servis">
         <h2 class="text-center text-2xl">Dílenské úkony</h2>
         <ul>
           <li>Servis vozidla</li>
@@ -12,12 +12,19 @@
           <li>Pneuservis</li>
         </ul>
       </div>
-      <div class="sidebar--events-store">
+      <div class="sidebar--events sidebar--events-store">
         <h2 class="text-center text-2xl">Skladové úkony</h2>
         <ul>
           <li>Příjem faktury</li>
           <li>Evidence zboží</li>
           <li>Výdej zboží</li>
+        </ul>
+      </div>
+      <div class="sidebar--events sidebar--events-park">
+        <h2 class="text-center text-2xl">Vozový park</h2>
+        <ul>
+          <li>Příprava vozidla</li>
+          <li>Oprava vozidla</li>
         </ul>
       </div>
     </aside>
@@ -112,8 +119,11 @@ export default {
 .sidebar--events-store {
   background-color: #bfbfff;
 }
-.sidebar--events-servis,
-.sidebar--events-store {
+.sidebar--events-park {
+  background-color: #d2e9ff;
+}
+
+.sidebar--events {
   text-align: center;
   margin-bottom: 10px;
 }
