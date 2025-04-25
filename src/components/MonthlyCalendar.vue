@@ -143,13 +143,16 @@ export default {
       for (let i = firstDayIndex - 1; i >= 0; i--) {
         const date = prevMonthLastDay - i
         const fullDate = new Date(prevYear, prevMonth, date)
+        const nameDay = this.nameDays[prevMonth + 1]?.[date] || []
+        const stateHoliday = this.stateHolidays[this.prevMonth + 1]?.[date] || []
+
         days.push({
           date,
           dayOfWeek: fullDate.getDay(),
           isOverflow: true,
-          isHoliday: fullDate.getDay() === 0 || fullDate.getDay() === 6,
+          isHoliday: fullDate.getDay() === 0 || fullDate.getDay() === 6 || stateHoliday.length > 0,
           isToday: fullDate.toDateString() === today.toDateString(), // Kontrola dnešního data
-          nameDay: null,
+          nameDay: nameDay.length > 0 ? nameDay : null,
         })
       }
 
@@ -157,12 +160,15 @@ export default {
       for (let i = 1; i <= totalDays; i++) {
         const fullDate = new Date(this.currentYear, this.currentMonth, i)
         const nameDay = this.nameDays[this.currentMonth + 1]?.[i] || []
+        const stateHoliday = this.stateHolidays[this.currentMonth + 1]?.[i] || []
+
+        console.log('State Holiday:', stateHoliday)
 
         days.push({
           date: i,
           dayOfWeek: fullDate.getDay(),
           isOverflow: false,
-          isHoliday: fullDate.getDay() === 0 || fullDate.getDay() === 6,
+          isHoliday: fullDate.getDay() === 0 || fullDate.getDay() === 6 || stateHoliday.length > 0,
           isToday: fullDate.toDateString() === today.toDateString(), // Kontrola dnešního data
           nameDay: nameDay.length > 0 ? nameDay : null,
         })
@@ -176,13 +182,16 @@ export default {
 
       for (let i = 1; i <= nextMonthDays; i++) {
         const fullDate = new Date(nextYear, nextMonth, i)
+        const nameDay = this.nameDays[nextMonth + 1]?.[i] || []
+        const stateHoliday = this.stateHolidays[this.nextMonth + 1]?.[i] || []
+
         days.push({
           date: i,
           dayOfWeek: fullDate.getDay(),
           isOverflow: true,
-          isHoliday: fullDate.getDay() === 0 || fullDate.getDay() === 6,
+          isHoliday: fullDate.getDay() === 0 || fullDate.getDay() === 6 || stateHoliday.length > 0,
           isToday: fullDate.toDateString() === today.toDateString(), // Kontrola dnešního data
-          nameDay: null,
+          nameDay: nameDay.length > 0 ? nameDay : null,
         })
       }
 
@@ -249,12 +258,15 @@ export default {
 }
 
 .name-day {
+  position: absolute;
+  top: 8px;
+  right: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #e0e0e0;
-  margin: 1px;
-  border-radius: 5px;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #888;
 }
 
 /* Kalendářní buňky */
@@ -280,6 +292,7 @@ export default {
   border: 1px solid #ddd;
   padding: 5px;
   border-radius: 5px;
+  position: relative;
 }
 
 .cell-today {
