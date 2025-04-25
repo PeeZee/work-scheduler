@@ -1,31 +1,24 @@
 import express from 'express'
 import mysql from 'mysql2'
-//import cors from 'cors'
-
+/**
+ * funguje to i bez "instalace cors" - stačí nastavit hlavičky
+ * a pak nekolikrat sputit a zastavit node server
+ */
 const app = express()
 const port = 3000
 
 // Middleware pro zpracování JSON požadavků
 app.use(express.json())
 
-// Middleware pro CORS
-/*app.use(
-  cors({
-    origin: 'http://localhost:5174', // Povolení Vue frontend
-    methods: ['GET', 'POST'], // Povolené metody
-    allowedHeaders: ['Content-Type'], // Povolené hlavičky
-  }),
-)*/
-
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5174')
+  res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
   next()
 })
 
 // Testovací endpoint pro kontrolu CORS
-/*app.get('/test', (req, res, next) => {
+/*app.get('/test', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5174')
   res.setHeader('Access-Control-Allow-Methods', 'GET')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

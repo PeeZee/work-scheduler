@@ -4,16 +4,14 @@ import DefaultPage from './components/DefaultPage.vue'
 </script>
 
 <template>
-  <header>
-    <div class="wrapper">
-      <DefaultPage />
+  <div class="wrapper">
+    <DefaultPage />
 
-      <!--nav>
+    <!--nav>
         <RouterLink to="/">Home</RouterLink>
         <RouterLink to="/about">About</RouterLink>
       </nav-->
-    </div>
-  </header>
+  </div>
 
   <!--RouterView /-->
 </template>
