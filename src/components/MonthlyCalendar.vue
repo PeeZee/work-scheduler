@@ -7,7 +7,7 @@
         <section class="calendar-section">
           <!-- Názvy dní -->
           <div class="days-of-week">
-            <div v-for="day in daysOfWeek" :key="day" class="name-day">
+            <div v-for="day in daysOfWeek" :key="day" class="name-of-week-day">
               {{ day }}
             </div>
           </div>
@@ -27,6 +27,7 @@
               {{ day.date }}
 
               <small class="name-day" v-if="day.nameDay">{{ day.nameDay.join(', ') }}</small>
+              <small class="holi-day" v-if="day.holiDay">{{ day.holiDay.join(', ') }}</small>
               <!-- Události -->
               <ul v-if="getEventsForDay(day.date)" class="event-list">
                 <li v-for="event in getEventsForDay(day.date)" :key="event.id">
@@ -153,6 +154,7 @@ export default {
           isHoliday: fullDate.getDay() === 0 || fullDate.getDay() === 6 || stateHoliday.length > 0,
           isToday: fullDate.toDateString() === today.toDateString(), // Kontrola dnešního data
           nameDay: nameDay.length > 0 ? nameDay : null,
+          holiDay: stateHoliday.length > 0 ? stateHoliday : null,
         })
       }
 
@@ -171,6 +173,7 @@ export default {
           isHoliday: fullDate.getDay() === 0 || fullDate.getDay() === 6 || stateHoliday.length > 0,
           isToday: fullDate.toDateString() === today.toDateString(), // Kontrola dnešního data
           nameDay: nameDay.length > 0 ? nameDay : null,
+          holiDay: stateHoliday.length > 0 ? stateHoliday : null,
         })
       }
 
@@ -192,6 +195,7 @@ export default {
           isHoliday: fullDate.getDay() === 0 || fullDate.getDay() === 6 || stateHoliday.length > 0,
           isToday: fullDate.toDateString() === today.toDateString(), // Kontrola dnešního data
           nameDay: nameDay.length > 0 ? nameDay : null,
+          holiDay: stateHoliday.length > 0 ? stateHoliday : null,
         })
       }
 
@@ -255,6 +259,15 @@ export default {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   height: 4%; /* Rezervace prostoru */
+}
+
+.name-of-week-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e0e0e0;
+  margin: 1px;
+  border-radius: 5px;
 }
 
 .name-day {
