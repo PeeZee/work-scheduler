@@ -11,8 +11,8 @@
   />
 
   <MyModalEvent :groups="groups" :tasks="tasks" />
-  <MyModalGroupTasks :groups="groups" />
-  <MyModalTasks :groups="groups" :tasks="tasks" />
+  <MyModalGroupTasks :groups="groups" @fetchGroups="fetchGroups" />
+  <MyModalTasks :groups="groups" :tasks="tasks" @fetchTasks="fetchTasks" />
 
   <div class="flex flex-col h-screen">
     <!-- Kalendářní navigace -->
@@ -108,7 +108,14 @@ import ConfirmModal from './ConfirmModal.vue'
 import { getClassByGroupId } from '@/utils/utils.js'
 
 export default {
-  emits: ['handleMonthYearUpdate', 'eventsFetched', 'triggerModalGroupTasks'], // Deklarace emitovaných událostí
+  emits: [
+    'handleMonthYearUpdate',
+    'eventsFetched',
+    'triggerModalGroupTasks',
+    'groupsUpdated',
+    'tasksUpdated',
+    'fetchGroups',
+  ], // Deklarace emitovaných událostí
   components: {
     MyModalEvent,
     MyModalGroupTasks,
@@ -183,7 +190,10 @@ export default {
     ...mapGetters(['isConfirmModalVisible', 'selectedDate', 'selectedEvent']),
   },
   methods: {
-    ...mapActions(['openConfirmModal', 'closeConfirmModal', 'updateSelectedDate']),
+    ...mapActions(['openConfirmModal', 'closeConfirmModal', 'updateSelectedDate', 'fetchGroups']),
+    updateGroups() {
+      this.fetchGroups() // Aktualizace seznamu skupin
+    },
     triggerConfirmModal(event, type) {
       this.openConfirmModal({
         id: event.id,
@@ -259,7 +269,7 @@ export default {
       try {
         const response = await axios.get('http://localhost:3000/api/groups')
         this.groups = response.data
-        //this.$emit('groupsFetched', this.groups) // Emitujeme události rodiči
+        this.$emit('groupsUpdated', this.groups) // Emitujeme aktualizované skupiny rodiči
       } catch (error) {
         console.error('Chyba při získávání grup:', error)
       }
@@ -268,7 +278,7 @@ export default {
       try {
         const response = await axios.get('http://localhost:3000/api/tasks')
         this.tasks = response.data
-        //this.$emit('tasksFetched', this.tasks) // Emitujeme události rodiči
+        this.$emit('tasksUpdated', this.tasks) // Emitujeme události rodiči
       } catch (error) {
         console.error('Chyba při získávání tasks:', error)
       }

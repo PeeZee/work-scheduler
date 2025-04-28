@@ -67,6 +67,8 @@
         :currentYear="currentYear"
         @handleMonthYearUpdate="handleMonthYearUpdate"
         @eventsFetched="handleEventsFetched"
+        @groupsUpdated="handleGroupsUpdate"
+        @tasksUpdated="handleTasksUpdate"
       />
     </main>
   </div>
@@ -142,6 +144,14 @@ export default {
     },
     triggerModalTasks() {
       this.$refs.monthlyCalendar.openModalTasks() // Přístup k metodě dítěte přes ref
+    },
+    async handleTasksUpdate(tasks) {
+      this.tasks = tasks // Aktualizace lokálních dat skupin
+      console.log('Seznam typů úkoů byl aktualizován v DefaultPage:', this.tasks)
+    },
+    async handleGroupsUpdate(groups) {
+      this.groups = groups // Aktualizace lokálních dat skupin
+      console.log('Seznam skupin byl aktualizován v DefaultPage:', this.groups)
     },
     async fetchGroups() {
       try {

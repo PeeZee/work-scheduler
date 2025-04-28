@@ -107,6 +107,7 @@ import BaseModal from './BaseModal.vue'
 
 export default {
   components: { BaseModal },
+  emits: ['fetchTasks'], // Deklarace emitované události
   data() {
     return {
       task: [],
@@ -209,7 +210,7 @@ export default {
           ...task,
         })
         this.task.push(response.data)
-        this.$emit('fetchTasks', this.tasks)
+        this.reloadTasks()
         this.editedTask.id = response.data.Values.id
       } catch (error) {
         console.error('Chyba při přidávání tasku:', error)

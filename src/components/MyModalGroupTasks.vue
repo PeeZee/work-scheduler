@@ -73,6 +73,7 @@ import { mapGetters, mapActions } from 'vuex'
 import BaseModal from './BaseModal.vue'
 
 export default {
+  emits: ['fetchGroups'], // Deklarace emitované události
   components: { BaseModal },
   data() {
     return {
@@ -166,8 +167,8 @@ export default {
 
         // Zpracujeme odpověď ze serveru (např. přidání do lokálního seznamu skupin)
         this.group.push(response.data)
-        this.$emit('fetchGroups', this.groups)
         this.editedGroup.id = response.data.Values.id // Nastavení ID pro další použití
+        this.reloadGroups() // Lokální obnova v modálním okně
       } catch (error) {
         console.error('Chyba při přidávání skupiny:', error)
         this.$emit('errorOccurred', 'Nepodařilo se přidat skupinu.')
