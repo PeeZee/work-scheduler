@@ -50,11 +50,9 @@
   }
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
+html,
+body {
+  overflow: hidden;
 }
 
 body {
@@ -82,4 +80,82 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hlavní stránka */
+.page-container {
+  display: grid;
+  grid-template-columns: 300px 1fr; /* Sidebar vlevo, hlavní obsah vpravo */
+  height: 100vh;
+  overflow: hidden;
+}
+
+.sidebar {
+  padding: 0px;
+  background-color: #fff;
+  margin: 6px 5px 20px 5px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.sidebar--settings {
+  background-color: #c0c0c0;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 5px 10px;
+  border-radius: 0 0 5px 5px;
+}
+
+.sidebar--events-servis {
+  background-color: #ffbfbf;
+}
+.sidebar--events-store {
+  background-color: #ffdbb7;
+}
+.sidebar--events-park {
+  background-color: #d2e9ff;
+}
+.sidebar--events-notes {
+  background-color: #ffffcc;
+}
+
+.sidebar--events {
+  margin-bottom: 10px;
+}
+
+.sidebar--month {
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  background-color: #6ee7b7; /* Světle zelená */
+  border-top-right-radius: 5px;
+  border-top-left-radius: 5px;
+}
+
+.sidebar--year {
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 10px;
+  background-color: #a7f3d0; /* Světle zelená */
+}
+
+/* Hlavní obsah */
+.content-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+header {
+  height: 3rem;
+  padding: 2px 0px;
+  text-align: center;
+  background-color: #fff;
+  margin: 5px 10px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }

@@ -1,8 +1,28 @@
 <template>
+  <ConfirmModal
+    v-if="isConfirmModalVisible"
+    :title="'Smazat událost'"
+    :message="'Opravdu chcete pokračovat?'"
+    :itemId="selectedEvent.id"
+    :itemName="selectedEvent.name"
+    :itemType="'events'"
+    @confirmed="handleDeleteX"
+    @close="closeConfirmModal"
+  />
+
+  <MyModalEvent :groups="groups" :tasks="tasks" />
+  <MyModalGroupTasks :groups="groups" />
+  <MyModalTasks :groups="groups" :tasks="tasks" />
+
   <div class="flex flex-col h-screen">
     <!-- Kalendářní navigace -->
     <div class="grid grid-cols-20 flex-grow">
-      <div class="col-span-1 nav-arrow left nav-arrow--left" @click="changeMonth(-1)">&lt;</div>
+      <div
+        class="col-span-1 nav-arrow left nav-arrow--left bg-white hover:bg-sky-200"
+        @click="changeMonth(-1)"
+      >
+        <i class="fas fa-arrow-left"></i>
+      </div>
       <div class="col-span-18">
         <section class="calendar-section">
           <!-- Názvy dní -->
@@ -29,30 +49,81 @@
               <small class="name-day" v-if="day.nameDay">{{ day.nameDay.join(', ') }}</small>
               <small class="holi-day" v-if="day.holiDay">{{ day.holiDay.join(', ') }}</small>
               <!-- Události -->
-              <ul v-if="getEventsForDay(day.date)" class="event-list">
-                <li v-for="event in getEventsForDay(day.date)" :key="event.id">
-                  {{ event.description }}
+
+              <ul v-if="getEventsForDay(day.fullDate)" class="event-list w-full">
+                <li
+                  v-for="event in getEventsForDay(day.fullDate)"
+                  :key="event.id"
+                  class="group text-center rounded px-1 py-[2px] cursor-pointer font-normal text-xs relative"
+                  :class="`sidebar--events-${getClassByGroupId(event.id_group)}`"
+                  @click="
+                    openModalEvent(
+                      currentYear + '-' + zeroFirst(currentMonth + 1) + '-' + zeroFirst(day.date),
+                    )
+                  "
+                >
+                  {{ event.name }}
+
+                  <button
+                    @click.stop.prevent="triggerConfirmModal(event, 'events')"
+                    class="hidden group-hover:block px-2 py-1 bg-gray-500 text-white rounded-lg text-[10px] absolute top-[2px] right-1 cursor-pointer"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
                 </li>
               </ul>
+
+              <div
+                v-if="getEventsForDay(day.fullDate).length === 0"
+                @click="
+                  openModalEvent(
+                    currentYear + '-' + zeroFirst(currentMonth + 1) + '-' + zeroFirst(day.date),
+                  )
+                "
+                class="hidden flex items-center justify-center settings-icon absolute top-8 bottom-1 left-1 right-1 sett-hover cursor-pointer p-2 rounded"
+              >
+                <i class="fas fa-marker text-7xl text-gray-400"></i>
+              </div>
             </div>
           </div>
         </section>
       </div>
-      <div class="col-span-1 nav-arrow right nav-arrow--right" @click="changeMonth(1)">&gt;</div>
+      <div
+        class="col-span-1 nav-arrow right nav-arrow--right bg-white hover:bg-sky-200"
+        @click="changeMonth(1)"
+      >
+        <i class="fas fa-arrow-right"></i>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
 import axios from 'axios'
+import { mapActions, mapGetters } from 'vuex'
+import MyModalEvent from './MyModalEvent.vue'
+import MyModalGroupTasks from './MyModalGroupTasks.vue'
+import MyModalTasks from './MyModalTasks.vue'
+import ConfirmModal from './ConfirmModal.vue'
+import { getClassByGroupId } from '@/utils/utils.js'
 
 export default {
+  emits: ['handleMonthYearUpdate', 'eventsFetched', 'triggerModalGroupTasks'], // Deklarace emitovaných událostí
+  components: {
+    MyModalEvent,
+    MyModalGroupTasks,
+    MyModalTasks,
+    ConfirmModal,
+  },
+  name: 'MonthlyCalendar',
   props: ['currentMonth', 'currentYear'], // Propojení s rodičem
   data() {
     return {
       daysOfWeek: ['Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota', 'Neděle'],
       calendarDays: [],
       events: [],
+      groups: [],
+      tasks: [],
       monthNames: [
         'Leden',
         'Únor',
@@ -74,10 +145,24 @@ export default {
   mounted() {
     this.$emit('handleMonthYearUpdate', { month: this.currentMonth, year: this.currentYear })
     this.fetchEvents()
+    this.fetchGroups()
+    this.fetchTasks()
+    // Přidání event listeneru na klávesnici - obsluhujeme tim sipky doleva a doprava
+    window.addEventListener('keydown', this.handleKeyPress)
   },
   watch: {
     currentMonth: 'generateCalendar', // Sledujeme změny aktuálního měsíce
     currentYear: 'generateCalendar', // Sledujeme změny aktuálního roku
+    stateHolidays(newValue) {
+      if (Object.keys(newValue).length && Object.keys(this.nameDays).length) {
+        this.generateCalendar()
+      }
+    },
+    nameDays(newValue) {
+      if (Object.keys(newValue).length && Object.keys(this.stateHolidays).length) {
+        this.generateCalendar()
+      }
+    },
   },
   async created() {
     try {
@@ -88,16 +173,49 @@ export default {
       const nameDaysResponse = await fetch('/data/calendarDataCZ.json')
       this.nameDays = await nameDaysResponse.json()
 
-      console.log('State Holidays:', this.stateHolidays)
-      console.log('Name Days:', this.nameDays)
-
       // Volání generateCalendar až po načtení dat
       this.generateCalendar()
     } catch (error) {
       console.error('Error loading calendar data:', error)
     }
   },
+  computed: {
+    ...mapGetters(['isConfirmModalVisible', 'selectedDate', 'selectedEvent']),
+  },
   methods: {
+    ...mapActions(['openConfirmModal', 'closeConfirmModal', 'updateSelectedDate']),
+    triggerConfirmModal(event, type) {
+      this.openConfirmModal({
+        id: event.id,
+        name: event.name,
+        type,
+      })
+    },
+    handleDeleteX(event) {
+      // Zpracování smazání události
+      console.log('Smažu událost:', event)
+      //this.deleteEvent(event.id) // Váš existující deleteEvent
+    },
+    selectDate(date) {
+      this.updateSelectedDate(date) // Aktualizace datumu ve Vuex
+    },
+    handleDelete(event) {
+      this.openConfirmModal(event)
+    },
+    openModalEvent(date) {
+      this.$store.dispatch('openModalEvent', date)
+    },
+    openModalGroupTasks() {
+      this.$store.dispatch('openModalGroupTasks')
+    },
+    openModalTasks() {
+      this.$store.dispatch('openModalTasks')
+    },
+    getClassByGroupId,
+    eventsForDate(date) {
+      return this.events.filter((event) => event.date === date)
+    },
+
     changeMonth(direction) {
       let newMonth = this.currentMonth + direction
       let newYear = this.currentYear
@@ -121,13 +239,46 @@ export default {
         const response = await axios.get('http://localhost:3000/api/events')
         this.events = response.data
         this.$emit('eventsFetched', this.events) // Emitujeme události rodiči
-        console.log('Získané události:', this.events)
       } catch (error) {
         console.error('Chyba při získávání událostí:', error)
       }
     },
+    async deleteEvent(eventId) {
+      try {
+        await axios.put(`http://localhost:3000/api/events/${eventId}/disable`, {
+          disabled: 1, // Nastavíme disabled na 1
+        })
+        // Odebereme událost z lokálního seznamu
+        this.events = this.events.filter((event) => event.id !== eventId)
+        console.log(`Událost s ID ${eventId} byla deaktivována.`)
+      } catch (error) {
+        console.error('Chyba při deaktivaci události:', error)
+      }
+    },
+    async fetchGroups() {
+      try {
+        const response = await axios.get('http://localhost:3000/api/groups')
+        this.groups = response.data
+        //this.$emit('groupsFetched', this.groups) // Emitujeme události rodiči
+      } catch (error) {
+        console.error('Chyba při získávání grup:', error)
+      }
+    },
+    async fetchTasks() {
+      try {
+        const response = await axios.get('http://localhost:3000/api/tasks')
+        this.tasks = response.data
+        //this.$emit('tasksFetched', this.tasks) // Emitujeme události rodiči
+      } catch (error) {
+        console.error('Chyba při získávání tasks:', error)
+      }
+    },
+    fetchEventsHandler(event) {
+      // Případné manipulace s novým eventem nebo opětovné načtení událostí
+      console.log('Nová událost přijata:', event)
+      this.fetchEvents() // Znovu načtení událostí ze serveru
+    },
     generateCalendar() {
-      console.log('this.nameDays:', this.nameDays)
       const today = new Date() // Dnešní datum
       const firstDayOfMonth = new Date(this.currentYear, this.currentMonth, 1)
       const lastDayOfMonth = new Date(this.currentYear, this.currentMonth + 1, 0)
@@ -155,6 +306,7 @@ export default {
           isToday: fullDate.toDateString() === today.toDateString(), // Kontrola dnešního data
           nameDay: nameDay.length > 0 ? nameDay : null,
           holiDay: stateHoliday.length > 0 ? stateHoliday : null,
+          fullDate: fullDate.toISOString().split('T')[0],
         })
       }
 
@@ -164,8 +316,6 @@ export default {
         const nameDay = this.nameDays[this.currentMonth + 1]?.[i] || []
         const stateHoliday = this.stateHolidays[this.currentMonth + 1]?.[i] || []
 
-        console.log('State Holiday:', stateHoliday)
-
         days.push({
           date: i,
           dayOfWeek: fullDate.getDay(),
@@ -174,6 +324,7 @@ export default {
           isToday: fullDate.toDateString() === today.toDateString(), // Kontrola dnešního data
           nameDay: nameDay.length > 0 ? nameDay : null,
           holiDay: stateHoliday.length > 0 ? stateHoliday : null,
+          fullDate: fullDate.toISOString().split('T')[0],
         })
       }
 
@@ -196,31 +347,62 @@ export default {
           isToday: fullDate.toDateString() === today.toDateString(), // Kontrola dnešního data
           nameDay: nameDay.length > 0 ? nameDay : null,
           holiDay: stateHoliday.length > 0 ? stateHoliday : null,
+          fullDate: fullDate.toISOString().split('T')[0],
         })
       }
 
       this.calendarDays = days
     },
+    handleKeyPress(event) {
+      // Ignoruj stisk kláves, pokud je otevřené libovolné modální okno
+      if (event.key === 'ArrowLeft') {
+        this.changeMonth(-1) // Přepnout na předchozí měsíc
+      } else if (event.key === 'ArrowRight') {
+        this.changeMonth(1) // Přepnout na následující měsíc
+      }
+    },
     getEventsForDay(day) {
-      const month = this.currentMonth + 1
-      const year = this.currentYear
-
       return this.events.filter((event) => {
-        const eventDate = new Date(event.date)
-        const localDate = new Date(eventDate.getTime() + eventDate.getTimezoneOffset() * 60000)
+        const eventDate = new Date(event.date) // Převeď fullDate na objekt typu Date
 
-        return (
-          localDate.getFullYear() === year &&
-          localDate.getMonth() + 1 === month &&
-          localDate.getDate() === day
-        )
+        // Zkontroluj, zda je datum validní
+        if (!isNaN(eventDate.getTime())) {
+          return eventDate.toISOString().split('T')[0] === day // Převod na formát YYYY-MM-DD a porovnání
+        } else {
+          console.warn(`Neplatná hodnota datumu: ${event.fullDate} vs ${day}`)
+          return false // Pokud event.fullDate není validní, záznam je vynechán
+        }
       })
+    },
+    zeroFirst(number) {
+      return number < 10 ? '0' + number : number
+    },
+
+    handleDeleteXX({ id, type }) {
+      const endpoint = `http://localhost:3000/api/${type}/${id}/disable`
+      axios
+        .put(endpoint, { disabled: 1 })
+        .then(() => {
+          console.log(`${type} položka s ID ${id} byla deaktivována.`)
+          this.fetchEvents() // Aktualizace zobrazení
+        })
+        .catch((error) => {
+          console.error('Chyba při deaktivaci položky:', error)
+        })
     },
   },
 }
 </script>
 
 <style scoped>
+.cell-day:hover .sett-hover {
+  display: flex; /* Zobrazí ikonku při najetí myší */
+}
+.settings-icon {
+  box-sizing: border-box; /* Zahrne padding do celkové šířky */
+  padding: 1px 5px; /* Odsazení ikonky */
+  border-radius: 5px; /* Zaoblení rohů */
+}
 .nav-arrow--left,
 .nav-arrow--right {
   display: flex;
@@ -230,7 +412,6 @@ export default {
   font-weight: 700;
   cursor: pointer;
   margin: 1px 5px 21px 5px;
-  background-color: #fff;
   border-radius: 5px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }

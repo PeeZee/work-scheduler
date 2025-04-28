@@ -4,34 +4,60 @@
     <aside class="sidebar p-4">
       <div class="sidebar--month">{{ displayedMonth }}</div>
       <div class="sidebar--year">{{ currentYear }}</div>
-      <div class="sidebar--events sidebar--events-servis">
-        <h2 class="text-center text-2xl">Dílenské úkony</h2>
+
+      <div
+        v-for="group in groups"
+        :key="group.id"
+        :class="`sidebar--events sidebar--events-${getClassByGroupId(group.id)}`"
+      >
+        <h2 class="text-center text-2xl">{{ group.name }}</h2>
         <ul>
-          <li>Servis vozidla</li>
-          <li>Příprava na STK</li>
-          <li>Pneuservis</li>
+          <li
+            v-for="task in tasks.filter((task) => task.id_group === group.id)"
+            :key="task.id"
+            class="text-center"
+          >
+            {{ task.name }}
+          </li>
         </ul>
       </div>
-      <div class="sidebar--events sidebar--events-store">
-        <h2 class="text-center text-2xl">Skladové úkony</h2>
+
+      <div class="sidebar--settings">
+        <h2 class="text-left text-xl mb-1 cursor-pointer" @click="bShowSettsings = !bShowSettsings">
+          <i class="fas fa-cog"></i> Nastavení
+        </h2>
         <ul>
-          <li>Příjem faktury</li>
-          <li>Evidence zboží</li>
-          <li>Výdej zboží</li>
+          <li v-if="bShowSettsings">
+            <a-button class="w-full" @click="triggerModalGroupTasks">Nová skupina úkolů</a-button>
+          </li>
+          <li v-if="bShowSettsings">
+            <a-button class="w-full" @click="triggerModalTasks">Nový typ úkolu</a-button>
+          </li>
         </ul>
-      </div>
-      <div class="sidebar--events sidebar--events-park">
-        <h2 class="text-center text-2xl">Vozový park</h2>
         <ul>
-          <li>Příprava vozidla</li>
-          <li>Oprava vozidla</li>
+          <li>
+            <a
+              class="text-xs"
+              href="https://tailwindcss.com/docs/installation/using-vite"
+              target="_blank"
+              >Tailwind CSS</a
+            >&nbsp;|&nbsp;
+            <a class="text-xs" href="https://antdv.com/components/overview" target="_blank"
+              >Ant Deign Vue</a
+            >&nbsp;|&nbsp;
+            <a class="text-xs" href="https://fontawesome.com/icons" target="_blank"
+              >Awesome Icons</a
+            >
+          </li>
         </ul>
       </div>
     </aside>
 
     <main class="content-container">
       <header class="p-4 text-center h-24">
-        <a-button @click="triggerFetchEvents">Načíst události</a-button>
+        <a-button class="mx-5" type="primary" @click="changeMonth(-1)">&lt;</a-button>
+        <span class="text-2xl px-3 inline">{{ displayedMonth }} / {{ currentYear }}</span>
+        <a-button class="mx-5" type="primary" @click="changeMonth(1)">&gt;</a-button>
       </header>
 
       <!-- Propojení měsíce a roku -->
@@ -47,8 +73,10 @@
 </template>
 
 <script>
+import axios from 'axios'
 import MonthlyCalendar from './MonthlyCalendar.vue'
 import { Button } from 'ant-design-vue'
+import { getClassByGroupId } from '@/utils/utils.js'
 
 export default {
   components: {
@@ -60,9 +88,15 @@ export default {
       currentMonth: new Date().getMonth(), // Načteme později přes ref
       currentYear: new Date().getFullYear(), // Inicializace roku
       displayedMonth: '', // Pro zobrazení slovního názvu
+      groups: [],
+      tasks: [],
+      bShowSettsings: false, // Pro zobrazení nastavení
     }
   },
   mounted() {
+    this.fetchGroups()
+    this.fetchTasks()
+
     // Počáteční název měsíce nastavíme z pole názvů v MonthlyCalendar
     // Počkáme, až bude komponenta MonthlyCalendar k dispozici přes $refs
     this.$nextTick(() => {
@@ -70,6 +104,25 @@ export default {
     })
   },
   methods: {
+    getClassByGroupId,
+    changeMonth(direction) {
+      let newMonth = this.currentMonth + direction
+      let newYear = this.currentYear
+
+      if (newMonth < 0) {
+        newMonth = 11
+        newYear--
+      } else if (newMonth > 11) {
+        newMonth = 0
+        newYear++
+      }
+
+      // Emitujeme aktualizované hodnoty zpět rodiči
+      this.handleMonthYearUpdate({
+        month: this.$refs.monthlyCalendar.monthNames[newMonth],
+        year: newYear,
+      })
+    },
     handleMonthYearUpdate({ month, year }) {
       // Aktualizujeme číselnou hodnotu měsíce a slovní název
       const monthIndex = this.$refs.monthlyCalendar.monthNames.indexOf(month)
@@ -80,85 +133,36 @@ export default {
       this.displayedMonth = month
     },
 
-    handleEventsFetched(events) {
-      console.log('Události přijaty od dítěte:', events) // Zpracujeme události z dítěte
-    },
+    handleEventsFetched() {},
     triggerFetchEvents() {
       this.$refs.monthlyCalendar.fetchEvents() // Přístup k metodě dítěte přes ref
+    },
+    triggerModalGroupTasks() {
+      this.$refs.monthlyCalendar.openModalGroupTasks() // Přístup k metodě dítěte přes ref
+    },
+    triggerModalTasks() {
+      this.$refs.monthlyCalendar.openModalTasks() // Přístup k metodě dítěte přes ref
+    },
+    async fetchGroups() {
+      try {
+        const response = await axios.get('http://localhost:3000/api/groups')
+        this.groups = response.data
+        //this.$emit('groupsFetched', this.groups) // Emitujeme události rodiči
+      } catch (error) {
+        console.error('Chyba při získávání grup:', error)
+      }
+    },
+    async fetchTasks() {
+      try {
+        const response = await axios.get('http://localhost:3000/api/tasks')
+        this.tasks = response.data
+        //this.$emit('tasksFetched', this.tasks) // Emitujeme události rodiči
+      } catch (error) {
+        console.error('Chyba při získávání tasks:', error)
+      }
     },
   },
 }
 </script>
 
-<style scoped>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-/* Hlavní stránka */
-.page-container {
-  display: grid;
-  grid-template-columns: 300px 1fr; /* Sidebar vlevo, hlavní obsah vpravo */
-  height: 100vh;
-  overflow: hidden;
-}
-
-.sidebar {
-  padding: 0px;
-  background-color: #fff;
-  margin: 6px 5px 20px 5px;
-  border-radius: 5px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-.sidebar--events-servis {
-  background-color: #f3e8ff;
-}
-.sidebar--events-store {
-  background-color: #bfbfff;
-}
-.sidebar--events-park {
-  background-color: #d2e9ff;
-}
-
-.sidebar--events {
-  text-align: center;
-  margin-bottom: 10px;
-}
-
-.sidebar--month {
-  font-size: 2rem;
-  font-weight: bold;
-  text-align: center;
-  background-color: #6ee7b7; /* Světle zelená */
-  border-top-right-radius: 5px;
-  border-top-left-radius: 5px;
-}
-
-.sidebar--year {
-  font-size: 1.5rem;
-  font-weight: bold;
-  text-align: center;
-  margin-bottom: 10px;
-  background-color: #a7f3d0; /* Světle zelená */
-}
-
-/* Hlavní obsah */
-.content-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-}
-
-header {
-  height: 3rem;
-  padding: 2px 0px;
-  text-align: center;
-  background-color: #fff;
-  margin: 5px 10px;
-  border-radius: 5px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-</style>
+<style scoped></style>
