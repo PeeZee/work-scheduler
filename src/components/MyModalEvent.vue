@@ -12,7 +12,9 @@
     />
 
     <div class="fixed inset-0 flex items-center justify-center overflow-hidden">
-      <div class="bg-gray-200 w-5/6 max-w-2xl rounded-lg shadow-lg overflow-y-auto max-h-[90vh]">
+      <div
+        class="bg-gray-200 w-5/6 max-w-2xl rounded-lg shadow-lg overflow-y-auto max-h-[90vh] min-h-1/2"
+      >
         <div class="flex justify-between items-center border-b px-6 py-4">
           <h2 class="text-2xl font-semibold">
             Záznam ke dni
@@ -26,7 +28,13 @@
           <div class="p-6 space-y-6 overflow-y-auto h-full">
             <ul class="divide-y divide-gray-200">
               <li
-                v-for="group in groups"
+                v-for="group in groups.filter((group) =>
+                  tasksWithEvents.some(
+                    (task) =>
+                      task.id_group === group.id &&
+                      events.some((event) => task.id === event.type_event),
+                  ),
+                )"
                 :key="group.id"
                 class="bg-white rounded-lg p-1 text-xl text-center"
                 :class="`sidebar--events sidebar--events-${getClassByGroupId(group.id)}`"
