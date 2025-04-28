@@ -354,6 +354,10 @@ export default {
       this.calendarDays = days
     },
     handleKeyPress(event) {
+      // Ignoruj šipky, pokud je MyModalEvent otevřené
+      if (this.$store.getters.isModalEventVisible) {
+        return
+      }
       // Ignoruj stisk kláves, pokud je otevřené libovolné modální okno
       if (event.key === 'ArrowLeft') {
         this.changeMonth(-1) // Přepnout na předchozí měsíc

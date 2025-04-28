@@ -219,7 +219,7 @@ export default {
   },
 
   methods: {
-    ...mapActions([, 'openConfirmModal', 'closeConfirmModal', 'closeModalEvent']),
+    ...mapActions(['openConfirmModal', 'closeConfirmModal', 'closeModalEvent']),
     triggerConfirmModal(event, type) {
       this.openConfirmModal({
         id: event.id,
@@ -228,12 +228,20 @@ export default {
       })
     },
     handleKeyPress(event) {
-      if (event.key === 'Escape') {
-        if (this.isConfirmModalVisible) {
-          // Pokud je viditelné ConfirmModal, zavření přenecháme jeho logice.
-          return
+      if (this.isModalEventVisible) {
+        if (event.key === 'ArrowLeft') {
+          this.changeDay(-1) // Přepnutí na předchozí den
+        } else if (event.key === 'ArrowRight') {
+          this.changeDay(1) // Přepnutí na následující den
+        } else if (event.key === 'Escape') {
+          if (this.isConfirmModalVisible) {
+            return // Nezavřeme MyModalEvent, pokud je viditelné ConfirmModal
+          }
+          this.close() // Zavře MyModalEvent
         }
-        this.close() // Zavře MyModalEvent
+        // Zamezení propagace události na další komponenty
+        event.preventDefault()
+        event.stopPropagation()
       }
     },
     close() {
