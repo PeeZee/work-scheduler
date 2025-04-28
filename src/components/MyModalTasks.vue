@@ -18,7 +18,7 @@
           <button class="text-gray-500 hover:text-gray-700" @click="close">Zavřít</button>
         </div>
 
-        <!-- Modal Content -->
+        <!-- Modal Content    -->
         <div class="flex h-full">
           <!-- Sidebar -->
           <div class="w-1/4 bg-gray-100 border-r overflow-y-auto nim-h-full">
