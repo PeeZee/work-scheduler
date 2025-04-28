@@ -122,8 +122,8 @@ export default {
         disabled: 0,
         visible: 1,
       },
-      titleForm: 'Přidat nový typ úkolu', // Initialize titleForm
-      btnForm: 'Přidat typ úkolu', // Initialize btnForm
+      titleForm: 'Přidat nový typ úkolu',
+      btnForm: 'Přidat typ úkolu',
     }
   },
   props: {
@@ -138,34 +138,36 @@ export default {
   },
   mounted() {
     this.reloadTasks()
-    this.$nextTick(() => {})
-    // Přidáme posluchač klávesnice při mountnutí komponenty
-    window.addEventListener('keydown', this.handleKeyPress)
+    window.addEventListener('keydown', this.handleKeyPress) // Přidání posluchače kláves
   },
   beforeUnmount() {
-    // Odebereme posluchač při zničení komponenty
-    window.removeEventListener('keydown', this.handleKeyPress)
+    window.removeEventListener('keydown', this.handleKeyPress) // Odebrání posluchače při zničení komponenty
   },
   watch: {
     isModalTasksVisible(newValue) {
       if (newValue) {
-        this.resetEditedTask() // Obnovení výchozích hodnot při zobrazení modálu
+        this.resetEditedTask()
       }
     },
   },
   computed: {
-    ...mapGetters(['isModalTasksVisible', 'selectedDate']),
+    ...mapGetters(['isModalTasksVisible']),
   },
   methods: {
     ...mapActions(['closeModalTasks']),
     close() {
-      this.closeModalTasks() // Zavře modal
+      this.closeModalTasks()
+    },
+    handleKeyPress(event) {
+      if (event.key === 'Escape') {
+        this.close() // Zavře modal pomocí ESC
+      }
     },
     reloadTasks() {
       this.$emit('fetchTasks')
     },
     editTask(task) {
-      this.editedTask = { ...task } // Zkopíruj data skupiny do editedGroup
+      this.editedTask = { ...task }
       this.titleForm = 'Editovat typ úkolu'
       this.btnForm = 'Opravit typ úkolu'
     },
@@ -203,30 +205,14 @@ export default {
     },
     async insertTask(task) {
       try {
-        // Odešleme požadavek POST s daty události na server
         const response = await axios.post('http://localhost:3000/api/tasks', {
-          id: task.id || null, // ID (volitelné, pokud se generuje na serveru)
-          name: task.name, // Název události
-          description: task.description, // Popis události
-          id_user: task.id_user || 1, // ID uživatele (volitelné, výchozí je 0)
-          id_group: task.id_group || 0, // ID uživatele (volitelné, výchozí je 0)
-          num: task.num || 1, // Pořadí (volitelné, výchozí je 1)
-          disabled: task.disabled || 0, // Status (volitelné, výchozí je 0)
-          visible: task.visible || 1, // Status (volitelné, výchozí je 1)
-          bg: task.bg, // Název události
-          color: task.color, // Název události
+          ...task,
         })
-
-        // Zpracujeme odpověď ze serveru (např. přidání do lokálního seznamu událostí)
         this.task.push(response.data)
-
-        // Emitujeme události rodičovské komponentě
         this.$emit('fetchTasks', this.tasks)
-        this.editedTask.id = response.data.Values.id // Nastavíme ID úkolu na ID z odpovědi
+        this.editedTask.id = response.data.Values.id
       } catch (error) {
         console.error('Chyba při přidávání tasku:', error)
-
-        // Zobrazíme uživateli chybovou zprávu (pokud je potřeba)
         this.$emit('errorOccurred', 'Nepodařilo se přidat task.')
       }
     },

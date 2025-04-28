@@ -6,7 +6,6 @@
         <div class="flex justify-between items-center border-b px-6 py-4">
           <h2 class="text-2xl font-semibold relative">
             Skupiny úkolů
-
             <button
               @click="resetEditedGroup"
               v-if="editedGroup.id > 0"
@@ -22,7 +21,7 @@
         <!-- Modal Content -->
         <div class="flex h-full">
           <!-- Sidebar -->
-          <div class="w-1/4 bg-gray-100 border-r overflow-y-auto nim-h-full">
+          <div class="w-1/4 bg-gray-100 border-r overflow-y-auto min-h-full">
             <ul class="divide-y divide-gray-200">
               <li
                 v-for="group in groups"
@@ -87,8 +86,8 @@ export default {
         disabled: 0,
         visible: 1,
       },
-      titleForm: 'Přidat novou skupinu', // Initialize titleForm
-      btnForm: 'Přidat skupinu', // Initialize btnForm
+      titleForm: 'Přidat novou skupinu',
+      btnForm: 'Přidat skupinu',
     }
   },
   props: {
@@ -97,11 +96,9 @@ export default {
       default: () => [],
     },
   },
-  mounted() {
-    this.reloadGroups()
-    this.$nextTick(() => {})
+  computed: {
+    ...mapGetters(['isModalGroupTasksVisible']),
   },
-  beforeUnmount() {},
   watch: {
     isModalGroupTasksVisible(newValue) {
       if (newValue) {
@@ -109,20 +106,28 @@ export default {
       }
     },
   },
-  computed: {
-    ...mapGetters(['isModalGroupTasksVisible', 'selectedDate']),
+  mounted() {
+    this.reloadGroups()
+    window.addEventListener('keydown', this.handleKeyPress) // Přidání posluchače kláves
+  },
+  beforeUnmount() {
+    window.removeEventListener('keydown', this.handleKeyPress) // Odebrání posluchače při zničení komponenty
   },
   methods: {
     ...mapActions(['closeModalGroupTasks']),
     close() {
       this.closeModalGroupTasks() // Zavře modal
     },
+    handleKeyPress(event) {
+      if (event.key === 'Escape') {
+        this.close() // Zavřít modal pomocí ESC
+      }
+    },
     reloadGroups() {
       this.$emit('fetchGroups')
     },
     editGroup(group) {
       this.editedGroup = { ...group } // Zkopíruj data skupiny do editedGroup
-      //this.$emit('editGroup', group) // Emitujeme událost editace skupiny
       this.titleForm = 'Editovat skupinu'
       this.btnForm = 'Opravit skupinu'
     },
@@ -139,46 +144,33 @@ export default {
       this.titleForm = 'Přidat novou skupinu'
       this.btnForm = 'Přidat skupinu'
     },
-    // Funkce pro zpracování události odeslání formuláře
     onSubmit(group) {
       const newGroup = {
-        id: group.target.id.value, // Hodnota z formuláře
-        id_user: group.target.id_user.value, // Hodnota z formuláře
-        num: group.target.num.value, // Hodnota z formuláře
-        disabled: group.target.disabled.value, // Hodnota z formulář
-        visible: group.target.visible.value, // Hodnota z formulář
-        description: group.target.description.value, // Hodnota z formuláře
-        name: group.target.name.value, // Hodnota z formuláře
+        id: group.target.id.value,
+        name: group.target.name.value,
+        description: group.target.description.value,
+        id_user: group.target.id_user.value,
+        num: group.target.num.value,
+        disabled: group.target.disabled.value,
+        visible: group.target.visible.value,
       }
 
       this.insertGroup(newGroup)
     },
     async insertGroup(group) {
-      console.log('Group k vložení:', group)
+      console.log('Skupina k vložení:', group)
       try {
-        // Odešleme požadavek POST s daty události na server
         const response = await axios.post('http://localhost:3000/api/groups', {
-          id: group.id || null, // ID (volitelné, pokud se generuje na serveru)
-          name: group.name, // Název události
-          description: group.description, // Popis události
-          id_user: group.id_user || 1, // ID uživatele (volitelné, výchozí je 0)
-          num: group.num || 1, // Pořadí (volitelné, výchozí je 1)
-          disabled: group.disabled || 0, // Status (volitelné, výchozí je 0)
-          visible: group.visible || 1, // Status (volitelné, výchozí je 1)
+          ...group,
         })
 
-        // Zpracujeme odpověď ze serveru (např. přidání do lokálního seznamu událostí)
+        // Zpracujeme odpověď ze serveru (např. přidání do lokálního seznamu skupin)
         this.group.push(response.data)
-
-        // Emitujeme události rodičovské komponentě
         this.$emit('fetchGroups', this.groups)
-        this.editedGroup.id = response.data.Values.id // Nastavíme ID pro další použití
-        //console.log('Grupa byla úspěšně přidána:', response.data)
+        this.editedGroup.id = response.data.Values.id // Nastavení ID pro další použití
       } catch (error) {
-        console.error('Chyba při přidávání grupy:', error)
-
-        // Zobrazíme uživateli chybovou zprávu (pokud je potřeba)
-        this.$emit('errorOccurred', 'Nepodařilo se přidat grupu.')
+        console.error('Chyba při přidávání skupiny:', error)
+        this.$emit('errorOccurred', 'Nepodařilo se přidat skupinu.')
       }
     },
   },
