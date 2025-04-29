@@ -13,6 +13,8 @@ export function getClassByGroupId(groupId) {
       return 'park'
     case 4:
       return 'notes'
+    case 5:
+      return 'educ'
     default:
       return 'default'
   }

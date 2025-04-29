@@ -10,7 +10,7 @@
     @close="closeConfirmModal"
   />
 
-  <MyModalEvent :groups="groups" :tasks="tasks" />
+  <MyModalEvent :groups="groups" :tasks="tasks" @fetchEvents="fetchEvents" />
   <MyModalGroupTasks :groups="groups" @fetchGroups="fetchGroups" />
   <MyModalTasks :groups="groups" :tasks="tasks" @fetchTasks="fetchTasks" />
 
@@ -201,11 +201,6 @@ export default {
         type,
       })
     },
-    handleDeleteX(event) {
-      // Zpracování smazání události
-      console.log('Smažu událost:', event)
-      //this.deleteEvent(event.id) // Váš existující deleteEvent
-    },
     selectDate(date) {
       this.updateSelectedDate(date) // Aktualizace datumu ve Vuex
     },
@@ -391,7 +386,19 @@ export default {
     zeroFirst(number) {
       return number < 10 ? '0' + number : number
     },
+    async handleDeleteX({ id, type }) {
+      try {
+        // Odeslání požadavku na deaktivaci záznamu
+        await axios.put(`http://localhost:3000/api/${type}/${id}/disable`, { disabled: 1 })
 
+        console.log(`${type} položka s ID ${id} byla deaktivována.`)
+
+        // Obnovíme seznam událostí po změně
+        this.fetchEvents() // Můžete přidat další logiku pro obnovu, pokud je potřeba
+      } catch (error) {
+        console.error('Chyba při deaktivaci položky:', error)
+      }
+    },
     handleDeleteXX({ id, type }) {
       const endpoint = `http://localhost:3000/api/${type}/${id}/disable`
       axios

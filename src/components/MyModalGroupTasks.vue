@@ -1,11 +1,23 @@
 <template>
   <BaseModal v-if="isModalGroupTasksVisible">
+    <ConfirmModal
+      v-if="isConfirmModalGroupVisible"
+      :title="'Smazat skupinu'"
+      :message="'Opravdu chcete pokračovat?'"
+      :itemId="selectedGroup?.id"
+      :itemName="selectedGroup?.name"
+      :itemType="'groups'"
+      @confirmed="handleDeleteX"
+      @close="closeConfirmModalGroup"
+    />
+
     <div class="fixed inset-0 flex items-center justify-center overflow-hidden">
       <div class="bg-white w-11/12 max-w-3xl rounded-lg shadow-lg overflow-y-auto max-h-[90vh]">
         <!-- Modal Header -->
         <div class="flex justify-between items-center border-b px-6 py-4">
           <h2 class="text-2xl font-semibold relative">
             Skupiny úkolů
+
             <button
               @click="resetEditedGroup"
               v-if="editedGroup.id > 0"
@@ -26,10 +38,17 @@
               <li
                 v-for="group in groups"
                 :key="group.id"
-                class="p-4 hover:bg-gray-200 cursor-pointer"
+                class="p-4 hover:bg-gray-200 cursor-pointer relative group"
                 @click="editGroup(group)"
               >
                 {{ group.name }}
+
+                <button
+                  @click.stop.prevent="triggerConfirmModalGroups(group)"
+                  class="hidden group-hover:block px-2 py-1 bg-gray-500 text-white rounded-lg text-[10px] absolute top-4 right-1 cursor-pointer"
+                >
+                  <i class="fas fa-trash"></i>
+                </button>
               </li>
             </ul>
           </div>
@@ -55,6 +74,9 @@
                 <input type="hidden" name="num" v-model="editedGroup.num" />
                 <input type="hidden" name="disabled" v-model="editedGroup.disabled" />
                 <input type="hidden" name="visible" v-model="editedGroup.visible" />
+                <input type="hidden" name="bg" v-model="editedGroup.bg" />
+                <input type="hidden" name="color" v-model="editedGroup.color" />
+                <input type="hidden" name="icon" v-model="editedGroup.icon" />
                 <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg w-full">
                   {{ this.btnForm }}
                 </button>
@@ -71,10 +93,11 @@
 import axios from 'axios'
 import { mapGetters, mapActions } from 'vuex'
 import BaseModal from './BaseModal.vue'
+import ConfirmModal from './ConfirmModal.vue'
 
 export default {
   emits: ['fetchGroups'], // Deklarace emitované události
-  components: { BaseModal },
+  components: { BaseModal, ConfirmModal },
   data() {
     return {
       group: [],
@@ -86,6 +109,9 @@ export default {
         num: 1,
         disabled: 0,
         visible: 1,
+        bg: '',
+        color: '',
+        icon: '',
       },
       titleForm: 'Přidat novou skupinu',
       btnForm: 'Přidat skupinu',
@@ -97,9 +123,7 @@ export default {
       default: () => [],
     },
   },
-  computed: {
-    ...mapGetters(['isModalGroupTasksVisible']),
-  },
+
   watch: {
     isModalGroupTasksVisible(newValue) {
       if (newValue) {
@@ -114,14 +138,39 @@ export default {
   beforeUnmount() {
     window.removeEventListener('keydown', this.handleKeyPress) // Odebrání posluchače při zničení komponenty
   },
+  computed: {
+    ...mapGetters(['isModalGroupTasksVisible', 'isConfirmModalGroupVisible', 'selectedGroup']),
+  },
   methods: {
-    ...mapActions(['closeModalGroupTasks']),
+    ...mapActions([
+      'setActiveModal',
+      'clearActiveModal',
+      'openConfirmModal',
+      'openConfirmModalGroup',
+      'closeConfirmModalGroup',
+      'closeModalGroupTasks',
+    ]),
+    triggerConfirmModalGroups(group) {
+      this.setActiveModal('groupTasksModal')
+      this.openConfirmModalGroup({
+        id: group.id,
+        name: group.name,
+        type: 'groups',
+      })
+    },
+
     close() {
       this.closeModalGroupTasks() // Zavře modal
     },
     handleKeyPress(event) {
-      if (event.key === 'Escape') {
-        this.close() // Zavřít modal pomocí ESC
+      // Zkontrolujeme, jestli cílový prvek (kam uživatel píše) není formulářový element
+      const targetTag = event.target.tagName.toLowerCase()
+      if (targetTag === 'input' || targetTag === 'textarea' || event.target.isContentEditable) {
+        return // Přerušení, pokud se píše do formulářového pole
+      }
+
+      if (event.key === 'Escape' && this.$store.getters.activeModal !== 'confirmModal') {
+        this.close() // Zavře pouze MyModalGroupTasks
       }
     },
     reloadGroups() {
@@ -141,6 +190,9 @@ export default {
         num: 1,
         disabled: 0,
         visible: 1,
+        bg: '',
+        color: '',
+        icon: '',
       }
       this.titleForm = 'Přidat novou skupinu'
       this.btnForm = 'Přidat skupinu'
@@ -154,6 +206,9 @@ export default {
         num: group.target.num.value,
         disabled: group.target.disabled.value,
         visible: group.target.visible.value,
+        bg: group.target.bg.value,
+        color: group.target.color.value,
+        icon: group.target.icon.value,
       }
 
       this.insertGroup(newGroup)
@@ -167,12 +222,26 @@ export default {
 
         // Zpracujeme odpověď ze serveru (např. přidání do lokálního seznamu skupin)
         this.group.push(response.data)
-        this.editedGroup.id = response.data.Values.id // Nastavení ID pro další použití
+        this.editedGroup.id = response.data.id // Nastavení ID pro další použití
         this.reloadGroups() // Lokální obnova v modálním okně
+        this.resetEditedGroup()
       } catch (error) {
         console.error('Chyba při přidávání skupiny:', error)
         this.$emit('errorOccurred', 'Nepodařilo se přidat skupinu.')
       }
+    },
+    handleDeleteX({ id, type }) {
+      const endpoint = `http://localhost:3000/api/${type}/${id}/disable`
+      axios
+        .put(endpoint, { disabled: 1 })
+        .then(() => {
+          console.log(`${type} položka skupiny s ID ${id} byla deaktivována.`)
+          this.reloadGroups() // Aktualizace zobrazení
+          this.resetEditedGroup()
+        })
+        .catch((error) => {
+          console.error('Chyba při deaktivaci položky:', error)
+        })
     },
   },
 }

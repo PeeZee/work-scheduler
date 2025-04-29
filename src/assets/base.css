@@ -121,6 +121,9 @@ body {
 .sidebar--events-notes {
   background-color: #ffffcc;
 }
+.sidebar--events-educ {
+  background-color: #ffb66c;
+}
 
 .sidebar--events {
   margin-bottom: 10px;

@@ -1,5 +1,16 @@
 <template>
   <BaseModal v-if="isModalTasksVisible">
+    <ConfirmModal
+      v-if="isConfirmModalTaskVisible"
+      :title="'Smazat typ úkolu'"
+      :message="'Opravdu chcete pokračovat?'"
+      :itemId="selectedTask?.id"
+      :itemName="selectedTask?.name"
+      :itemType="'tasks'"
+      @confirmed="handleDeleteX"
+      @close="closeConfirmModalTask"
+    />
+
     <div class="fixed inset-0 flex items-center justify-center overflow-hidden">
       <div class="bg-white w-11/12 max-w-3xl rounded-lg shadow-lg overflow-y-auto max-h-[90vh]">
         <!-- Modal Header -->
@@ -30,10 +41,17 @@
                   <li
                     v-for="task in tasks.filter((task) => task.id_group === group.id)"
                     :key="task.id"
-                    class="ml-4 p-1 hover:bg-gray-200 font-normal cursor-pointer"
+                    class="ml-4 p-1 hover:bg-gray-200 font-normal cursor-pointer relative group"
                     @click="editTask(task)"
                   >
                     {{ task.name }}
+
+                    <button
+                      @click.stop.prevent="triggerConfirmModalTasks(task)"
+                      class="hidden group-hover:block px-2 py-1 bg-gray-500 text-white rounded-lg text-[10px] absolute top-1 -right-3 cursor-pointer"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
                   </li>
                 </ul>
               </li>
@@ -81,13 +99,14 @@
                     v-model="editedTask.description"
                   ></textarea>
                 </div>
-                <input type="hidden" name="bg" v-model="editedTask.bg" />
-                <input type="hidden" name="color" v-model="editedTask.color" />
                 <input type="hidden" name="id" v-model="editedTask.id" />
                 <input type="hidden" name="id_user" v-model="editedTask.id_user" />
                 <input type="hidden" name="num" v-model="editedTask.num" />
                 <input type="hidden" name="disabled" v-model="editedTask.disabled" />
                 <input type="hidden" name="visible" v-model="editedTask.visible" />
+                <input type="hidden" name="bg" v-model="editedTask.bg" />
+                <input type="hidden" name="color" v-model="editedTask.color" />
+                <input type="hidden" name="icon" v-model="editedTask.icon" />
                 <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg w-full">
                   {{ this.btnForm }}
                 </button>
@@ -104,9 +123,10 @@
 import axios from 'axios'
 import { mapGetters, mapActions } from 'vuex'
 import BaseModal from './BaseModal.vue'
+import ConfirmModal from './ConfirmModal.vue'
 
 export default {
-  components: { BaseModal },
+  components: { BaseModal, ConfirmModal },
   emits: ['fetchTasks'], // Deklarace emitované události
   data() {
     return {
@@ -120,6 +140,7 @@ export default {
         num: 1,
         bg: '',
         color: '',
+        icon: '',
         disabled: 0,
         visible: 1,
       },
@@ -152,15 +173,38 @@ export default {
     },
   },
   computed: {
-    ...mapGetters(['isModalTasksVisible']),
+    ...mapGetters(['isModalTasksVisible', 'isConfirmModalTaskVisible', 'selectedTask']),
   },
   methods: {
-    ...mapActions(['closeModalTasks']),
+    ...mapActions([
+      'setActiveModal',
+      'clearActiveModal',
+      'closeModalTasks',
+      'openConfirmModalTask',
+      'closeConfirmModalTask',
+    ]),
+
+    triggerConfirmModalTasks(task) {
+      this.setActiveModal('tasksModal')
+      console.log('TriggerConfirmModalTasks called with:', task)
+      this.openConfirmModalTask({
+        id: task.id,
+        name: task.name,
+        type: 'tasks',
+      })
+      console.log('isConfirmModalGroupVisible:', this.isConfirmModalTaskVisible)
+    },
     close() {
       this.closeModalTasks()
     },
     handleKeyPress(event) {
-      if (event.key === 'Escape') {
+      // Zkontrolujeme, jestli cílový prvek (kam uživatel píše) není formulářový element
+      const targetTag = event.target.tagName.toLowerCase()
+      if (targetTag === 'input' || targetTag === 'textarea' || event.target.isContentEditable) {
+        return // Přerušení, pokud se píše do formulářového pole
+      }
+
+      if (event.key === 'Escape' && this.$store.getters.activeModal !== 'confirmModal') {
         this.close() // Zavře modal pomocí ESC
       }
     },
@@ -182,6 +226,7 @@ export default {
         num: 1,
         bg: '',
         color: '',
+        icon: '',
         disabled: 0,
         visible: 1,
       }
@@ -200,6 +245,7 @@ export default {
         name: task.target.name.value,
         bg: task.target.bg.value,
         color: task.target.color.value,
+        icon: task.target.icon.value,
       }
 
       this.insertTask(newTask)
@@ -211,11 +257,25 @@ export default {
         })
         this.task.push(response.data)
         this.reloadTasks()
-        this.editedTask.id = response.data.Values.id
+        console.log('insertTask', response.data)
+        this.editedTask.id = response.data.id
       } catch (error) {
         console.error('Chyba při přidávání tasku:', error)
         this.$emit('errorOccurred', 'Nepodařilo se přidat task.')
       }
+    },
+    handleDeleteX({ id, type }) {
+      const endpoint = `http://localhost:3000/api/${type}/${id}/disable`
+      axios
+        .put(endpoint, { disabled: 1 })
+        .then(() => {
+          console.log(`${type} položka typu úkolu s ID ${id} byla deaktivována.`)
+          this.reloadTasks() // Aktualizace zobrazení
+          this.resetEditedTask()
+        })
+        .catch((error) => {
+          console.error('Chyba při deaktivaci položky:', error)
+        })
     },
   },
 }

@@ -164,6 +164,7 @@ import { getClassByGroupId, formatDateCZ, formatDateVerbose, getDayName } from '
 
 export default {
   components: { BaseModal, ConfirmModal },
+  emits: ['fetchEvents', 'fetchEventsOfDay'], // Deklarace emitované události
   data() {
     return {
       localSelectedDate: '',
@@ -236,6 +237,12 @@ export default {
       })
     },
     handleKeyPress(event) {
+      // Zkontrolujeme, jestli cílový prvek (kam uživatel píše) není formulářový element
+      const targetTag = event.target.tagName.toLowerCase()
+      if (targetTag === 'input' || targetTag === 'textarea' || event.target.isContentEditable) {
+        return // Přerušení, pokud se píše do formulářového pole
+      }
+
       if (this.isModalEventVisible) {
         if (event.key === 'ArrowLeft') {
           this.changeDay(-1) // Přepnutí na předchozí den
@@ -288,7 +295,6 @@ export default {
         description: '',
         id_user: 1,
         type_event: 0,
-        color: '',
         disabled: 0,
         visible: 1,
       }
