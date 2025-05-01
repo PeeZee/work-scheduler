@@ -41,16 +41,22 @@
                   <li
                     v-for="task in tasks.filter((task) => task.id_group === group.id)"
                     :key="task.id"
-                    class="ml-4 p-1 hover:bg-gray-200 font-normal cursor-pointer relative group"
+                    class="ml-4 p-1 hover:bg-gray-200 font-normal cursor-pointer relative group hover:underline hover-underline-offset"
                     @click="editTask(task)"
+                    v-tooltip.focus="'Kliknutím editovat položku'"
+                    tabindex="0"
                   >
                     {{ task.name }}
 
                     <button
                       @click.stop.prevent="triggerConfirmModalTasks(task)"
-                      class="hidden group-hover:block px-2 py-1 bg-gray-500 text-white rounded-lg text-[10px] absolute top-1 -right-3 cursor-pointer"
+                      class="group-hover:block w-5 h-5 group-hover:bg-red-500 text-white rounded-full text-[10px] absolute top-[7px] -right-3 cursor-pointer flex items-center justify-center"
                     >
-                      <i class="fas fa-trash"></i>
+                      <i
+                        class="fas fa-trash opacity-50 group-hover:opacity-100 text-gray-400 group-hover:text-white"
+                        v-tooltip.auto="'Kliknutím položku odstraníš'"
+                        @mouseenter.stop
+                      ></i>
                     </button>
                   </li>
                 </ul>
@@ -146,6 +152,7 @@ export default {
       },
       titleForm: 'Přidat nový typ úkolu',
       btnForm: 'Přidat typ úkolu',
+      isLiTooltipVisible: false,
     }
   },
   props: {
@@ -176,6 +183,14 @@ export default {
     ...mapGetters(['isModalTasksVisible', 'isConfirmModalTaskVisible', 'selectedTask']),
   },
   methods: {
+    showLiTooltip() {
+      this.isLiTooltipVisible = true
+      this.$forceUpdate()
+    },
+    hideLiTooltip() {
+      this.isLiTooltipVisible = false
+      this.$forceUpdate()
+    },
     ...mapActions([
       'setActiveModal',
       'clearActiveModal',

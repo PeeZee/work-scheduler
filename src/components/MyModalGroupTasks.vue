@@ -38,16 +38,22 @@
               <li
                 v-for="group in groups"
                 :key="group.id"
-                class="p-4 hover:bg-gray-200 cursor-pointer relative group"
+                class="p-4 hover:bg-gray-200 cursor-pointer relative group hover:underline hover-underline-offset"
                 @click="editGroup(group)"
+                v-tooltip.focus="'Kliknutím editovat položku'"
+                tabindex="0"
               >
                 {{ group.name }}
 
                 <button
-                  @click.stop.prevent="triggerConfirmModalGroups(group)"
-                  class="hidden group-hover:block px-2 py-1 bg-gray-500 text-white rounded-lg text-[10px] absolute top-4 right-1 cursor-pointer"
+                  @click.stop.prevent="triggerConfirmModalGroupTasks(group)"
+                  class="group-hover:block w-5 h-5 group-hover:bg-red-500 text-white rounded-full text-[10px] absolute top-[20px] right-3 cursor-pointer flex items-center justify-center"
                 >
-                  <i class="fas fa-trash"></i>
+                  <i
+                    class="fas fa-trash opacity-50 group-hover:opacity-100 text-gray-400 group-hover:text-white"
+                    v-tooltip.auto="'Kliknutím položku odstraníš'"
+                    @mouseenter.stop
+                  ></i>
                 </button>
               </li>
             </ul>

@@ -2,6 +2,7 @@ import { createStore } from 'vuex'
 
 const store = createStore({
   state: {
+    currentView: 'month', // Defaultní pohled je měsíční
     activeModal: null, // Uchovává identifikátor nejvyššího aktivního modálního okna
     isConfirmModalTaskVisible: false, // Pro modál skupin
     isConfirmModalGroupVisible: false, // Pro modál skupin
@@ -17,6 +18,9 @@ const store = createStore({
     selectedDate: '', // Aktuálně vybrané datum
   },
   mutations: {
+    SET_VIEW(state, view) {
+      state.currentView = view
+    },
     setActiveModal(state, modalName) {
       state.activeModal = modalName // Nastavení aktuálního aktivního modálního okna
     },
@@ -62,6 +66,9 @@ const store = createStore({
     },
   },
   actions: {
+    setView({ commit }, view) {
+      commit('SET_VIEW', view)
+    },
     setActiveModal({ commit }, modalName) {
       commit('setActiveModal', modalName)
     },
@@ -123,6 +130,9 @@ const store = createStore({
     },
   },
   getters: {
+    currentView: (state) => state.currentView,
+    isMonthView: (state) => state.currentView === 'month',
+    isWeekView: (state) => state.currentView === 'week',
     activeModal: (state) => state.activeModal,
     isConfirmModalTaskVisible: (state) => state.isConfirmModalTaskVisible,
     isConfirmModalGroupVisible: (state) => state.isConfirmModalGroupVisible,
