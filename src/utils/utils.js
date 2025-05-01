@@ -89,3 +89,6 @@ export function getDayName(dateString) {
   const date = new Date(dateString) // Převede na objekt Date
   return days[date.getDay()] // Vrátí název dne
 }
+export function zeroFirst(number) {
+  return number < 10 ? '0' + number : number
+}

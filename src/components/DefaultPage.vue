@@ -74,6 +74,20 @@
           :style="{ color: isWeekView ? 'red' : '' }"
         ></i>
 
+        <button
+          name="goToToday"
+          class="w-22 h-[36px] radius btn btn-primary absolute top-1 left-25 cursor-pointer pt-1 font-bold"
+          v-tooltip.focus="'Jdi na Dnes'"
+          @click="customShortcutAction"
+        >
+          <i
+            class="fas fa-calendar-day float-left text-3xl absolute left-1 top-[3px]"
+            tabindex="0"
+            :style="{ color: isWeekView ? 'red' : '' }"
+          ></i>
+          <span class="pl-7">Dnes</span>
+        </button>
+
         <a-button v-if="isMonthView" class="mx-5" type="primary" @click="changeMonth(-1)"
           >&lt;</a-button
         >
@@ -115,7 +129,7 @@ import axios from 'axios'
 import { mapActions, mapGetters } from 'vuex'
 import MonthlyCalendar from './MonthlyCalendar.vue'
 import { Button } from 'ant-design-vue'
-import { getClassByGroupId } from '@/utils/utils.js'
+import { getClassByGroupId, zeroFirst } from '@/utils/utils.js'
 
 export default {
   components: {
@@ -164,6 +178,7 @@ export default {
   methods: {
     ...mapActions(['setView']),
     getClassByGroupId,
+    zeroFirst,
     getFutureEventCount(taskId) {
       const currentDate = new Date()
       return this.events.filter(
@@ -185,6 +200,11 @@ export default {
         if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
           this.setView('month')
         }
+      }
+
+      if (event.ctrlKey && event.key === 'd') {
+        event.preventDefault() // Zabrání výchozí funkci prohlížeče
+        this.customShortcutAction()
       }
     },
     changeMonth(direction) {
@@ -277,6 +297,22 @@ export default {
       } catch (error) {
         console.error('Chyba při získávání tasks:', error)
       }
+    },
+    customShortcutAction() {
+      this.setView('month') // Přepnutí na měsíční pohled
+      this.currentMonth = new Date().getMonth() // Nastavení aktuálního měsíce
+      this.currentYear = new Date().getFullYear() // Nastavení aktuálního roku
+
+      // Aktualizace nadpisu nad kalendářem
+      this.displayedMonth = this.$refs.monthlyCalendar.monthNames[this.currentMonth]
+
+      this.$nextTick(() => {
+        const today = new Date()
+        const formattedToday = `${this.currentYear}-${this.zeroFirst(this.currentMonth + 1)}-${this.zeroFirst(today.getDate())}`
+
+        // Otevře modal pro aktuální den v měsíčním zobrazení
+        this.$refs.monthlyCalendar.openModalEvent(formattedToday)
+      })
     },
   },
 }

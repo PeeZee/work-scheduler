@@ -538,9 +538,7 @@ export default {
         return event.date.split(' ')[0] === day
       })
     },
-    zeroFirst(number) {
-      return number < 10 ? '0' + number : number
-    },
+
     async handleDeleteX({ id, type }) {
       try {
         // Odeslání požadavku na deaktivaci záznamu
