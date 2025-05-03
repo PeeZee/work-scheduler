@@ -61,14 +61,14 @@
       <header class="p-4 text-center h-24 relative">
         <i
           class="fas fa-calendar-days float-left text-4xl absolute top-1 left-2 cursor-pointer"
-          v-tooltip.focus="'Měsíční pohled'"
+          v-tooltip.focus="'Měsíční pohled (šipky nahoru/dolů)'"
           tabindex="0"
           @click="setView('month')"
           :style="{ color: isMonthView ? 'red' : '' }"
         ></i>
         <i
           class="fas fa-calendar-week float-left text-4xl absolute top-1 left-12 cursor-pointer"
-          v-tooltip.focus="'Týdenní pohled'"
+          v-tooltip.focus="'Týdenní pohled (šipky nahoru/dolů)'"
           tabindex="0"
           @click="setView('week')"
           :style="{ color: isWeekView ? 'red' : '' }"
@@ -77,7 +77,7 @@
         <button
           name="goToToday"
           class="w-22 h-[36px] radius btn btn-primary absolute top-1 left-25 cursor-pointer pt-1 font-bold"
-          v-tooltip.focus="'Jdi na Dnes'"
+          v-tooltip.focus="'Jdi na Dnes (Ctrl + D)'"
           @click="customShortcutAction"
         >
           <i

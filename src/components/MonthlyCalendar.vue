@@ -172,7 +172,7 @@ import MyModalEvent from './MyModalEvent.vue'
 import MyModalGroupTasks from './MyModalGroupTasks.vue'
 import MyModalTasks from './MyModalTasks.vue'
 import ConfirmModal from './ConfirmModal.vue'
-import { getClassByGroupId } from '@/utils/utils.js'
+import { getClassByGroupId, zeroFirst } from '@/utils/utils.js'
 
 export default {
   emits: [
@@ -359,6 +359,7 @@ export default {
       this.$store.dispatch('openModalTasks')
     },
     getClassByGroupId,
+    zeroFirst,
     eventsForDate(date) {
       return this.events.filter((event) => event.date === date)
     },
