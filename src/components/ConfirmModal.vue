@@ -55,14 +55,12 @@ export default {
     this.clearActiveModal() // Vymaže aktivní modal při odmountování
   },
   computed: {
-    ...mapGetters([
-      'isConfirmModalVisible',
-      'isConfirmModalGroupVisible',
-      'isConfirmModalTaskVisible',
-      'selectedEvent',
-      'selectedGroup',
-      'selectedTask',
-    ]),
+    ...mapGetters({
+      isConfirmModalVisible: 'modals/isConfirmModalVisible',
+      isConfirmModalGroupVisible: 'modals/isConfirmModalGroupVisible',
+      isConfirmModalTaskVisible: 'modals/isConfirmModalTaskVisible',
+      activeModal: 'view/activeModal',
+    }),
     dynamicTitle() {
       if (this.itemType === 'groups') {
         return 'Smazat skupinu'
@@ -75,18 +73,26 @@ export default {
     },
   },
   methods: {
-    ...mapActions([
-      'setActiveModal',
-      'clearActiveModal',
-      'closeConfirmModal',
-      'closeConfirmModalGroup',
-      'closeConfirmModalTask',
-    ]),
+    ...mapActions({
+      openModalEvent: 'events/openModalEvent',
+      closeModalEvent: 'events/closeModalEvent',
+      openConfirmModal: 'modals/openConfirmModal',
+      closeConfirmModal: 'modals/closeConfirmModal',
+      openConfirmModalGroup: 'modals/openConfirmModalGroup',
+      closeConfirmModalGroup: 'modals/closeConfirmModalGroup',
+      openConfirmModalTask: 'modals/openConfirmModalTask',
+      closeConfirmModalTask: 'modals/closeConfirmModalTask',
+      clearActiveModal: 'view/clearActiveModal',
+      setActiveModal: 'view/setActiveModal',
+      handleDeleteEvent: 'events/handleDeleteEvent',
+      handleDeleteGroup: 'groups/handleDeleteGroup',
+      handleDeleteTask: 'tasks/handleDeleteTask',
+    }),
+
     handleKeyPress(event) {
       if (event.key === 'Escape') {
         //this.close() // Zavře ConfirmModal
-
-        if (this.$store.getters.activeModal === 'confirmModal') {
+        if (this.activeModal === 'confirmModal') {
           this.close() // Zavře pouze aktuální ConfirmModal
         } else {
           if (this.isConfirmModalTaskVisible) {
@@ -103,7 +109,20 @@ export default {
       this.setActiveModal('confirmModal')
     },
     confirm() {
-      this.$emit('confirmed', { id: this.itemId, type: this.itemType }) // Emitace potvrzení s daty
+      console.log('Odesílám do handleDelete' + this.itemType + ':', {
+        id: this.itemId,
+        type: this.itemType,
+      })
+
+      if (this.itemType === 'groups') {
+        this.handleDeleteGroup({ id: this.itemId, type: this.itemType })
+      } else if (this.itemType === 'events') {
+        //this.$store.dispatch('events/handleDeleteEvent', { id: this.itemId, type: this.itemType })
+        this.handleDeleteEvent({ id: this.itemId, type: this.itemType })
+      } else if (this.itemType === 'tasks') {
+        this.handleDeleteTask({ id: this.itemId, type: this.itemType })
+      }
+
       this.close() // Zavření modálního okna
     },
     close() {
@@ -114,6 +133,7 @@ export default {
       } else if (this.itemType === 'tasks') {
         this.closeConfirmModalTask() // Zavření modálního okna událostí
       }
+      this.clearActiveModal() // Vymazání aktivního modalu
     },
   },
 }

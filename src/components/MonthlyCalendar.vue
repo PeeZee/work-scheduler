@@ -6,15 +6,14 @@
     :itemId="selectedEvent.id"
     :itemName="selectedEvent.name"
     :itemType="'events'"
-    @confirmed="handleDeleteX"
-    @close="closeConfirmModal"
   />
 
-  <MyModalEvent :groups="groups" :tasks="tasks" @fetchEvents="fetchEvents" />
-  <MyModalGroupTasks :groups="groups" @fetchGroups="fetchGroups" />
-  <MyModalTasks :groups="groups" :tasks="tasks" @fetchTasks="fetchTasks" />
+  <MyModalGroupTasks />
+  <MyModalTasks />
 
-  <!--MONTHY VIEW -->
+  <MyModalEvent />
+
+  <!--MONTHLY VIEW -->
   <div v-if="isMonthView" class="flex flex-col h-screen">
     <!-- Kalendářní navigace -->
     <div class="grid grid-cols-20 flex-grow">
@@ -28,7 +27,7 @@
         <section class="calendar-section">
           <!-- Názvy dní -->
           <div class="days-of-week">
-            <div v-for="day in daysOfWeek" :key="day" class="name-of-week-day">
+            <div v-for="day in daysOfWeek.slice(1)" :key="day" class="name-of-week-day">
               {{ day }}
             </div>
           </div>
@@ -59,7 +58,7 @@
                   :class="`sidebar--events-${getClassByGroupId(event.id_group)}`"
                   @click="
                     openModalEvent(
-                      currentYear + '-' + zeroFirst(currentMonth + 1) + '-' + zeroFirst(day.date),
+                      day.year + '-' + zeroFirst(day.month + 1) + '-' + zeroFirst(day.date),
                     )
                   "
                 >
@@ -78,7 +77,7 @@
                 v-if="getEventsForDay(day.fullDate).length === 0"
                 @click="
                   openModalEvent(
-                    currentYear + '-' + zeroFirst(currentMonth + 1) + '-' + zeroFirst(day.date),
+                    day.year + '-' + zeroFirst(day.month + 1) + '-' + zeroFirst(day.date),
                   )
                 "
                 class="hidden flex items-center justify-center settings-icon absolute top-8 bottom-1 left-1 right-1 sett-hover cursor-pointer p-2 rounded"
@@ -122,7 +121,7 @@
           <!-- Levý obdélník -->
           <div class="w-1/6 bg-gray-50 p-2 rounded-l-lg shadow-inner flex flex-col justify-center">
             <div class="text-2xl font-bold text-center">
-              {{ getDayFullName(day.dayOfWeek - 1) }}
+              {{ getDayFullName(day.dayOfWeek) }}
             </div>
             <div class="text-xl text-gray-600 text-center">{{ formatDate(day.fullDate) }}</div>
             <div class="text-xl text-gray-600 text-center">{{ day?.nameDay?.join(', ') }}</div>
@@ -138,7 +137,7 @@
               style="max-width: calc(33.333% - 8px); flex: 1 1 calc(33.333% - 8px)"
               @click="
                 openModalEvent(
-                  currentYear + '-' + zeroFirst(currentMonth + 1) + '-' + zeroFirst(day.date),
+                  day.month + '-' + zeroFirst(day.month + 1) + '-' + zeroFirst(day.date),
                 )
               "
             >
@@ -172,7 +171,7 @@ import MyModalEvent from './MyModalEvent.vue'
 import MyModalGroupTasks from './MyModalGroupTasks.vue'
 import MyModalTasks from './MyModalTasks.vue'
 import ConfirmModal from './ConfirmModal.vue'
-import { getClassByGroupId, zeroFirst } from '@/utils/utils.js'
+import { getClassByGroupId, zeroFirst, getStartOfWeek } from '@/utils/utils.js'
 
 export default {
   emits: [
@@ -186,45 +185,26 @@ export default {
   ], // Deklarace emitovaných událostí
   components: {
     MyModalEvent,
+    ConfirmModal,
     MyModalGroupTasks,
     MyModalTasks,
-    ConfirmModal,
   },
   name: 'MonthlyCalendar',
-  props: ['currentMonth', 'currentYear', 'currendDate'], // Propojení s rodičem
   data() {
     return {
-      daysOfWeek: ['Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota', 'Neděle'],
+      daysOfWeek: ['Neděle', 'Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota', 'Neděle'],
       calendarDays: [],
       events: [],
       groups: [],
       tasks: [],
-      monthNames: [
-        'Leden',
-        'Únor',
-        'Březen',
-        'Duben',
-        'Květen',
-        'Červen',
-        'Červenec',
-        'Srpen',
-        'Září',
-        'Říjen',
-        'Listopad',
-        'Prosinec',
-      ],
+
       stateHolidays: {},
       nameDays: {},
-      currentDate: null,
     }
   },
   mounted() {
-    const localDate = DateTime.now().setZone('Europe/Berlin').toJSDate()
-    this.currentDate = localDate
     this.$emit('handleMonthYearUpdate', { month: this.currentMonth, year: this.currentYear })
-    this.fetchEvents()
-    this.fetchGroups()
-    this.fetchTasks()
+
     this.updateDayHeight()
     // Přidání event listeneru na klávesnici - obsluhujeme tim sipky doleva a doprava
     window.addEventListener('keydown', this.handleKeyPress)
@@ -253,32 +233,35 @@ export default {
       this.nameDays = await nameDaysResponse.json()
 
       // Volání generateCalendar až po načtení dat
+
+      console.log('Načtené státní svátky:', this.stateHolidays)
+      console.log('Načtené jmeniny:', this.nameDays)
+
       this.generateCalendar()
     } catch (error) {
       console.error('Error loading calendar data:', error)
     }
   },
   computed: {
-    ...mapGetters([
-      'isMonthView',
-      'isWeekView',
-      'isConfirmModalVisible',
-      'selectedDate',
-      'selectedEvent',
-    ]),
-    currentWeekDays0() {
-      const start = this.getStartOfWeek(this.currentDate)
-      const days = []
-      for (let i = 0; i < 7; i++) {
-        const nextDay = new Date(start)
-        nextDay.setDate(start.getDate() + i)
-        days.push(nextDay)
-      }
-      return days
-    },
+    ...mapGetters({
+      allEvents: 'events/allEvents',
+      selectedEvent: 'events/selectedEvent',
+      isMonthView: 'view/isMonthView', // Správný odkaz na modul `view.js`
+      isWeekView: 'view/isWeekView',
+      currentYear: 'view/currentYear',
+      currentMonth: 'view/currentMonth',
+      currentDate: 'view/currentDate',
+      isConfirmModalVisible: 'modals/isConfirmModalVisible',
+      isModalEventVisible: 'modals/isModalEventVisible',
+      isModalGroupTasksVisible: 'modals/isModalGroupTasksVisible',
+      isModalTasksVisible: 'modals/isModalTasksVisible',
+    }),
     currentWeekDays() {
       const start = this.getStartOfWeek(this.currentDate)
+
       const days = []
+
+      console.log('currentWeekDays - calendarDays: ', this.calendarDays)
 
       for (let i = 0; i < 7; i++) {
         const nextDay = new Date(start)
@@ -309,6 +292,9 @@ export default {
           })
         }
       }
+
+      console.log('currentWeekDays - days: ', days)
+
       return days
     },
     startOfWeekDate() {
@@ -322,35 +308,34 @@ export default {
     },
     displayedWeek() {
       const weekNumber = this.getISOWeek(this.startOfWeekDate) // Získání čísla týdne
-      return `Týden č.${weekNumber} od ${this.formatDate(this.startOfWeekDate)} do ${this.formatDate(this.endOfWeekDate)}`
+      return `Týden <strong>č. ${weekNumber}</strong> od <strong>${this.formatDate(this.startOfWeekDate)}</strong> do <strong>${this.formatDate(this.endOfWeekDate)}</strong>`
     },
   },
   methods: {
-    ...mapActions([
-      'setView',
-      'openConfirmModal',
-      'closeConfirmModal',
-      'updateSelectedDate',
-      'fetchGroups',
-    ]),
+    getStartOfWeek,
+    ...mapActions({
+      fetchEvents: 'events/fetchEvents',
+      changeWeek: 'view/changeWeek',
+      changeMonth: 'view/changeMonth',
+      updateCurrentDate: 'view/updateCurrentDate',
+      openModalEvent: 'events/openModalEvent',
+      openConfirmModal: 'modals/openConfirmModal',
+      setEvent: 'events/setEvent',
+      setEventType: 'events/setEventType',
+    }),
     updateGroups() {
       this.fetchGroups() // Aktualizace seznamu skupin
     },
     triggerConfirmModal(event, type) {
-      this.openConfirmModal({
-        id: event.id,
-        name: event.name,
-        type,
-      })
+      this.openConfirmModal()
+      this.setEvent(event) // Uložení vybrané události do Vuex
+      this.setEventType(type)
     },
     selectDate(date) {
       this.updateSelectedDate(date) // Aktualizace datumu ve Vuex
     },
     handleDelete(event) {
       this.openConfirmModal(event)
-    },
-    openModalEvent(date) {
-      this.$store.dispatch('openModalEvent', date)
     },
     openModalGroupTasks() {
       this.$store.dispatch('openModalGroupTasks')
@@ -362,34 +347,6 @@ export default {
     zeroFirst,
     eventsForDate(date) {
       return this.events.filter((event) => event.date === date)
-    },
-
-    changeMonth(direction) {
-      let newMonth = this.currentMonth + direction
-      let newYear = this.currentYear
-
-      if (newMonth < 0) {
-        newMonth = 11
-        newYear--
-      } else if (newMonth > 11) {
-        newMonth = 0
-        newYear++
-      }
-
-      // Emitujeme aktualizované hodnoty zpět rodiči
-      this.$emit('handleMonthYearUpdate', {
-        month: this.monthNames[newMonth],
-        year: newYear,
-      })
-    },
-    async fetchEvents() {
-      try {
-        const response = await axios.get('http://localhost:3000/api/events')
-        this.events = response.data
-        this.$emit('eventsFetched', this.events) // Emitujeme události rodiči
-      } catch (error) {
-        console.error('Chyba při získávání událostí:', error)
-      }
     },
     async deleteEvent(eventId) {
       try {
@@ -403,24 +360,7 @@ export default {
         console.error('Chyba při deaktivaci události:', error)
       }
     },
-    async fetchGroups() {
-      try {
-        const response = await axios.get('http://localhost:3000/api/groups')
-        this.groups = response.data
-        this.$emit('groupsUpdated', this.groups) // Emitujeme aktualizované skupiny rodiči
-      } catch (error) {
-        console.error('Chyba při získávání grup:', error)
-      }
-    },
-    async fetchTasks() {
-      try {
-        const response = await axios.get('http://localhost:3000/api/tasks')
-        this.tasks = response.data
-        this.$emit('tasksUpdated', this.tasks) // Emitujeme události rodiči
-      } catch (error) {
-        console.error('Chyba při získávání tasks:', error)
-      }
-    },
+
     fetchEventsHandler(event) {
       // Případné manipulace s novým eventem nebo opětovné načtení událostí
       console.log('Nová událost přijata:', event)
@@ -445,8 +385,8 @@ export default {
       const prevMonthLastDay = new Date(prevYear, prevMonth + 1, 0).getDate() // Poslední den předchozího měsíce
 
       for (let i = firstDayIndex - 1; i >= 0; i--) {
-        const date = prevMonthLastDay
-        const fullDateObj = new Date(prevYear, prevMonth, date) // Přidáno 12 hodin
+        const date = prevMonthLastDay - i
+        const fullDateObj = new Date(prevYear, prevMonth, date)
         const fullDate = DateTime.fromJSDate(new Date(prevYear, prevMonth, date)).toFormat(
           'yyyy-MM-dd',
         )
@@ -456,6 +396,8 @@ export default {
         days.push({
           date,
           dayOfWeek: fullDateObj.getDay(),
+          month: prevMonth,
+          year: prevYear,
           isOverflow: true,
           isHoliday:
             fullDateObj.getDay() === 0 || fullDateObj.getDay() === 6 || stateHoliday.length > 0,
@@ -468,14 +410,16 @@ export default {
 
       // Dny aktuálního měsíce
       for (let i = 1; i <= totalDays; i++) {
-        const fullDateObj = new Date(this.currentYear, this.currentMonth, i) // Přidáno 12 hodin
+        const fullDateObj = new Date(this.currentYear, this.currentMonth, i)
         const fullDate = DateTime.fromJSDate(fullDateObj).toFormat('yyyy-MM-dd')
-        const nameDay = this.nameDays[this.currentMonth]?.[i] || []
-        const stateHoliday = this.stateHolidays[this.currentMonth]?.[i] || []
+        const nameDay = this.nameDays[this.currentMonth + 1]?.[i] || []
+        const stateHoliday = this.stateHolidays[this.currentMonth + 1]?.[i] || []
 
         days.push({
           date: i,
           dayOfWeek: fullDateObj.getDay(),
+          month: this.currentMonth,
+          year: this.currentYear,
           isOverflow: false,
           isHoliday:
             fullDateObj.getDay() === 0 || fullDateObj.getDay() === 6 || stateHoliday.length > 0,
@@ -493,7 +437,7 @@ export default {
       const nextMonthDays = 6 - lastDayIndex
 
       for (let i = 1; i <= nextMonthDays; i++) {
-        const fullDateObj = new Date(nextYear, nextMonth, i) // Přidáno 12 hodin
+        const fullDateObj = new Date(nextYear, nextMonth, i)
         const fullDate = DateTime.fromJSDate(fullDateObj).toFormat('yyyy-MM-dd')
         const nameDay = this.nameDays[nextMonth + 1]?.[i] || []
         const stateHoliday = this.stateHolidays[this.nextMonth + 1]?.[i] || []
@@ -501,6 +445,8 @@ export default {
         days.push({
           date: i,
           dayOfWeek: fullDateObj.getDay(),
+          month: nextMonth,
+          year: nextYear,
           isOverflow: true,
           isHoliday:
             fullDateObj.getDay() === 0 || fullDateObj.getDay() === 6 || stateHoliday.length > 0,
@@ -515,7 +461,7 @@ export default {
     },
     handleKeyPress(event) {
       // Ignoruj šipky, pokud je MyModalEvent otevřené
-      if (this.$store.getters.isModalEventVisible) {
+      if (this.isModalEventVisible) {
         return
       }
 
@@ -530,28 +476,15 @@ export default {
         if (event.key === 'ArrowLeft') {
           this.changeWeek(-1) // Přepnout na předchozí t7den
         } else if (event.key === 'ArrowRight') {
+          console.log('changeWeek(1)')
           this.changeWeek(1) // Přepnout na následující t7den
         }
       }
     },
     getEventsForDay(day) {
-      return this.events.filter((event) => {
+      return this.allEvents.filter((event) => {
         return event.date.split(' ')[0] === day
       })
-    },
-
-    async handleDeleteX({ id, type }) {
-      try {
-        // Odeslání požadavku na deaktivaci záznamu
-        await axios.put(`http://localhost:3000/api/${type}/${id}/disable`, { disabled: 1 })
-
-        console.log(`${type} položka s ID ${id} byla deaktivována.`)
-
-        // Obnovíme seznam událostí po změně
-        this.fetchEvents() // Můžete přidat další logiku pro obnovu, pokud je potřeba
-      } catch (error) {
-        console.error('Chyba při deaktivaci položky:', error)
-      }
     },
 
     formatDate(date) {
@@ -566,43 +499,16 @@ export default {
       if (!(date instanceof Date)) {
         date = new Date(date) // Ověření a případná konverze na objekt Date
       }
-      const daysOfWeek = ['Ne', 'Po', 'Út', 'St', 'Čt', 'Pá', 'So']
-      return daysOfWeek[date.getDay()] // getDay() vrací 0 pro neděli, 1 pro pondělí atd.
+      return this.daysOfWeek[date.getDay()] // getDay() vrací 0 pro neděli, 1 pro pondělí atd.
     },
     getDayFullName(num) {
       return this.daysOfWeek[num] // getDay() vrací 0 pro neděli, 1 pro pondělí atd.
     },
-    getStartOfWeek(date) {
-      if (!(date instanceof Date)) {
-        return 1
-      }
-      const dayOfWeek = date.getDay() // 0 (neděle) - 6 (sobota)
-      const diff = date.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) // Pondělí
-      return new Date(date.setDate(diff))
-    },
-    changeWeek(direction) {
-      const newDate = new Date(this.currentDate)
-      newDate.setDate(this.currentDate.getDate() + direction * 7)
-      this.currentDate = newDate
-      // Emituj aktuální týden
-      this.$emit('handleWeekUpdate', {
-        startOfWeek: this.startOfWeekDate,
-        endOfWeek: this.endOfWeekDate,
-        displayedWeek: this.displayedWeek,
-      })
-    },
+
     updateDayHeight() {
       const containerHeight = window.innerHeight - 36 // 20px rezerva
       const dayHeight = containerHeight / 7 - 10 // Rozdělení mezi 7 dnů
       document.documentElement.style.setProperty('--day-height', `${dayHeight}px`)
-    },
-    getISOWeek(date) {
-      const tempDate = new Date(date.getTime())
-      tempDate.setHours(0, 0, 0, 0)
-      tempDate.setDate(tempDate.getDate() + 4 - (tempDate.getDay() || 7))
-      const yearStart = new Date(tempDate.getFullYear(), 0, 1)
-      const weekNumber = Math.ceil(((tempDate - yearStart) / 86400000 + 1) / 7)
-      return weekNumber
     },
   },
 }

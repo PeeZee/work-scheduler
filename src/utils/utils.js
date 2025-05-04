@@ -1,3 +1,18 @@
+export const monthNames = [
+  'Leden',
+  'Únor',
+  'Březen',
+  'Duben',
+  'Květen',
+  'Červen',
+  'Červenec',
+  'Srpen',
+  'Září',
+  'Říjen',
+  'Listopad',
+  'Prosinec',
+]
+
 /**
  * Utility funkce pro získání CSS třídy podle ID skupiny.
  * @param {number} groupId - ID skupiny.
@@ -91,4 +106,33 @@ export function getDayName(dateString) {
 }
 export function zeroFirst(number) {
   return number < 10 ? '0' + number : number
+}
+
+export function getISOWeek(date) {
+  const targetDate = new Date(date)
+  targetDate.setHours(0, 0, 0, 0)
+  targetDate.setDate(targetDate.getDate() + 4 - (targetDate.getDay() || 7))
+  const yearStart = new Date(targetDate.getFullYear(), 0, 1)
+  return Math.ceil(((targetDate - yearStart) / 86400000 + 1) / 7)
+}
+
+export function getStartOfWeek(date) {
+  if (!(date instanceof Date)) {
+    return 1
+  }
+  const dayOfWeek = date.getDay() // 0 (neděle) - 6 (sobota)
+  const diff = date.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) // Pondělí
+  return new Date(date.setDate(diff))
+}
+
+export function getEndOfWeek(date) {
+  const startOfWeek = new Date(date)
+  const dayOfWeek = startOfWeek.getDay()
+  const diff = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)
+  startOfWeek.setDate(diff)
+
+  const endOfWeek = new Date(startOfWeek)
+  endOfWeek.setDate(startOfWeek.getDate() + 6) // 🔥 Posun o 6 dní, abychom získali konec týdne
+
+  return endOfWeek
 }

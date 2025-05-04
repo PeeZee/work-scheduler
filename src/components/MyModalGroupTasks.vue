@@ -7,8 +7,6 @@
       :itemId="selectedGroup?.id"
       :itemName="selectedGroup?.name"
       :itemType="'groups'"
-      @confirmed="handleDeleteX"
-      @close="closeConfirmModalGroup"
     />
 
     <div class="fixed inset-0 flex items-center justify-center overflow-hidden">
@@ -36,7 +34,7 @@
           <div class="w-1/4 bg-gray-100 border-r overflow-y-auto min-h-full">
             <ul class="divide-y divide-gray-200">
               <li
-                v-for="group in groups"
+                v-for="group in allGroups"
                 :key="group.id"
                 class="p-4 hover:bg-gray-200 cursor-pointer relative group hover:underline hover-underline-offset"
                 @click="editGroup(group)"
@@ -102,11 +100,9 @@ import BaseModal from './BaseModal.vue'
 import ConfirmModal from './ConfirmModal.vue'
 
 export default {
-  emits: ['fetchGroups'], // Deklarace emitované události
   components: { BaseModal, ConfirmModal },
   data() {
     return {
-      group: [],
       editedGroup: {
         id: null,
         name: '',
@@ -122,12 +118,6 @@ export default {
       titleForm: 'Přidat novou skupinu',
       btnForm: 'Přidat skupinu',
     }
-  },
-  props: {
-    groups: {
-      type: Array,
-      default: () => [],
-    },
   },
 
   watch: {
@@ -145,24 +135,30 @@ export default {
     window.removeEventListener('keydown', this.handleKeyPress) // Odebrání posluchače při zničení komponenty
   },
   computed: {
-    ...mapGetters(['isModalGroupTasksVisible', 'isConfirmModalGroupVisible', 'selectedGroup']),
+    ...mapGetters({
+      allGroups: 'groups/allGroups',
+      selectedGroup: 'groups/selectedGroup',
+      isConfirmModalGroupVisible: 'modals/isConfirmModalGroupVisible',
+      isModalGroupTasksVisible: 'modals/isModalGroupTasksVisible',
+      activeModal: 'view/activeModal',
+    }),
   },
   methods: {
-    ...mapActions([
-      'setActiveModal',
-      'clearActiveModal',
-      'openConfirmModal',
-      'openConfirmModalGroup',
-      'closeConfirmModalGroup',
-      'closeModalGroupTasks',
-    ]),
-    triggerConfirmModalGroups(group) {
-      this.setActiveModal('groupTasksModal')
-      this.openConfirmModalGroup({
-        id: group.id,
-        name: group.name,
-        type: 'groups',
-      })
+    ...mapActions({
+      setActiveModal: 'view/setActiveModal',
+      clearActiveModal: 'view/clearActiveModal',
+      closeModalGroupTasks: 'modals/closeModalGroupTasks',
+      openConfirmModalGroup: 'modals/openConfirmModalGroup',
+      closeConfirmModalGroup: 'modals/closeConfirmModalGroup',
+      setGroup: 'groups/setGroup',
+      setGroupType: 'groups/setGroupType',
+    }),
+
+    triggerConfirmModalGroupTasks(group) {
+      //this.setActiveModal('groupTasksModal')
+      this.openConfirmModalGroup()
+      this.setGroup(group) // Uložení vybrané události do Vuex
+      this.setGroupType('groups')
     },
 
     close() {
@@ -170,17 +166,20 @@ export default {
     },
     handleKeyPress(event) {
       // Zkontrolujeme, jestli cílový prvek (kam uživatel píše) není formulářový element
-      const targetTag = event.target.tagName.toLowerCase()
-      if (targetTag === 'input' || targetTag === 'textarea' || event.target.isContentEditable) {
-        return // Přerušení, pokud se píše do formulářového pole
-      }
 
-      if (event.key === 'Escape' && this.$store.getters.activeModal !== 'confirmModal') {
-        this.close() // Zavře pouze MyModalGroupTasks
+      if (this.activeModal !== 'confirmModal') {
+        const targetTag = event.target.tagName.toLowerCase()
+        if (targetTag === 'input' || targetTag === 'textarea' || event.target.isContentEditable) {
+          return // Přerušení, pokud se píše do formulářového pole
+        }
+
+        if (event.key === 'Escape' && this.$store.getters.activeModal !== 'confirmModal') {
+          this.close() // Zavře pouze MyModalGroupTasks
+        }
       }
     },
     reloadGroups() {
-      this.$emit('fetchGroups')
+      this.$store.dispatch('groups/fetchGroups')
     },
     editGroup(group) {
       this.editedGroup = { ...group } // Zkopíruj data skupiny do editedGroup
@@ -227,7 +226,7 @@ export default {
         })
 
         // Zpracujeme odpověď ze serveru (např. přidání do lokálního seznamu skupin)
-        this.group.push(response.data)
+        //this.group.push(response.data)
         this.editedGroup.id = response.data.id // Nastavení ID pro další použití
         this.reloadGroups() // Lokální obnova v modálním okně
         this.resetEditedGroup()
@@ -235,19 +234,6 @@ export default {
         console.error('Chyba při přidávání skupiny:', error)
         this.$emit('errorOccurred', 'Nepodařilo se přidat skupinu.')
       }
-    },
-    handleDeleteX({ id, type }) {
-      const endpoint = `http://localhost:3000/api/${type}/${id}/disable`
-      axios
-        .put(endpoint, { disabled: 1 })
-        .then(() => {
-          console.log(`${type} položka skupiny s ID ${id} byla deaktivována.`)
-          this.reloadGroups() // Aktualizace zobrazení
-          this.resetEditedGroup()
-        })
-        .catch((error) => {
-          console.error('Chyba při deaktivaci položky:', error)
-        })
     },
   },
 }

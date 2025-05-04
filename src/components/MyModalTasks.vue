@@ -7,8 +7,6 @@
       :itemId="selectedTask?.id"
       :itemName="selectedTask?.name"
       :itemType="'tasks'"
-      @confirmed="handleDeleteX"
-      @close="closeConfirmModalTask"
     />
 
     <div class="fixed inset-0 flex items-center justify-center overflow-hidden">
@@ -34,12 +32,16 @@
           <!-- Sidebar -->
           <div class="w-1/4 bg-gray-100 border-r overflow-y-auto nim-h-full">
             <ul class="divide-y divide-gray-200">
-              <li v-for="group in groups" :key="group.id" class="p-4 hover:bg-gray-200 font-bold">
+              <li
+                v-for="group in allGroups"
+                :key="group.id"
+                class="p-4 hover:bg-gray-200 font-bold"
+              >
                 {{ group.name }}
 
                 <ul class="divide-y divide-gray-100">
                   <li
-                    v-for="task in tasks.filter((task) => task.id_group === group.id)"
+                    v-for="task in allTasks.filter((task) => task.id_group === group.id)"
                     :key="task.id"
                     class="ml-4 p-1 hover:bg-gray-200 font-normal cursor-pointer relative group hover:underline hover-underline-offset"
                     @click="editTask(task)"
@@ -78,7 +80,7 @@
                     class="w-full border rounded-lg px-3 py-2 focus:outline-none"
                   >
                     <option
-                      v-for="group in groups"
+                      v-for="group in allGroups"
                       :key="group.id"
                       class="p-4 hover:bg-gray-200 cursor-pointer"
                       :value="group.id"
@@ -180,7 +182,14 @@ export default {
     },
   },
   computed: {
-    ...mapGetters(['isModalTasksVisible', 'isConfirmModalTaskVisible', 'selectedTask']),
+    ...mapGetters({
+      allGroups: 'groups/allGroups',
+      allTasks: 'tasks/allTasks',
+      selectedTask: 'tasks/selectedTask',
+      isConfirmModalTaskVisible: 'modals/isConfirmModalTaskVisible',
+      isModalTasksVisible: 'modals/isModalTasksVisible',
+      activeModal: 'view/activeModal',
+    }),
   },
   methods: {
     showLiTooltip() {
@@ -199,32 +208,42 @@ export default {
       'closeConfirmModalTask',
     ]),
 
+    ...mapActions({
+      setActiveModal: 'view/setActiveModal',
+      clearActiveModal: 'view/clearActiveModal',
+      closeModalTasks: 'modals/closeModalTasks',
+      openConfirmModalTask: 'modals/openConfirmModalTask',
+      closeConfirmModalTask: 'modals/closeConfirmModalTask',
+      setTask: 'tasks/setTask',
+      setTaskType: 'tasks/setTaskType',
+    }),
+
     triggerConfirmModalTasks(task) {
-      this.setActiveModal('tasksModal')
+      //this.setActiveModal('tasksModal')
       console.log('TriggerConfirmModalTasks called with:', task)
-      this.openConfirmModalTask({
-        id: task.id,
-        name: task.name,
-        type: 'tasks',
-      })
-      console.log('isConfirmModalGroupVisible:', this.isConfirmModalTaskVisible)
+      this.openConfirmModalTask()
+      this.setTask(task) // Uložení vybrané události do Vuex
+      this.setTaskType('tasks')
+      console.log('isConfirmModalTaskVisible:', this.isConfirmModalTaskVisible)
     },
     close() {
       this.closeModalTasks()
     },
     handleKeyPress(event) {
-      // Zkontrolujeme, jestli cílový prvek (kam uživatel píše) není formulářový element
-      const targetTag = event.target.tagName.toLowerCase()
-      if (targetTag === 'input' || targetTag === 'textarea' || event.target.isContentEditable) {
-        return // Přerušení, pokud se píše do formulářového pole
-      }
+      if (this.activeModal !== 'confirmModal') {
+        // Zkontrolujeme, jestli cílový prvek (kam uživatel píše) není formulářový element
+        const targetTag = event.target.tagName.toLowerCase()
+        if (targetTag === 'input' || targetTag === 'textarea' || event.target.isContentEditable) {
+          return // Přerušení, pokud se píše do formulářového pole
+        }
 
-      if (event.key === 'Escape' && this.$store.getters.activeModal !== 'confirmModal') {
-        this.close() // Zavře modal pomocí ESC
+        if (event.key === 'Escape' && this.$store.getters.activeModal !== 'confirmModal') {
+          this.close() // Zavře modal pomocí ESC
+        }
       }
     },
     reloadTasks() {
-      this.$emit('fetchTasks')
+      this.$store.dispatch('tasks/fetchTasks')
     },
     editTask(task) {
       this.editedTask = { ...task }

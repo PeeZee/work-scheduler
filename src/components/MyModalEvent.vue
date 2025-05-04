@@ -7,8 +7,6 @@
       :itemId="selectedEvent.id"
       :itemName="selectedEvent.name"
       :itemType="'events'"
-      @confirmed="handleDeleteX"
-      @close="closeConfirmModal"
     />
 
     <div class="fixed inset-0 flex items-center justify-center overflow-hidden">
@@ -28,7 +26,7 @@
           <div class="p-6 space-y-6 overflow-y-auto h-full">
             <ul class="divide-y divide-gray-200">
               <li
-                v-for="group in groups.filter((group) =>
+                v-for="group in allGroups.filter((group) =>
                   tasksWithEvents.some(
                     (task) =>
                       task.id_group === group.id &&
@@ -108,7 +106,7 @@
                     class="w-full border rounded-lg px-3 py-2 focus:outline-none"
                   >
                     <option
-                      v-for="task in tasks"
+                      v-for="task in allTasks"
                       :key="task.id"
                       class="p-4 hover:bg-gray-200 cursor-pointer"
                       :value="task.id"
@@ -164,7 +162,6 @@ import { getClassByGroupId, formatDateCZ, formatDateVerbose, getDayName } from '
 
 export default {
   components: { BaseModal, ConfirmModal },
-  emits: ['fetchEvents', 'fetchEventsOfDay'], // Deklarace emitované události
   data() {
     return {
       localSelectedDate: '',
@@ -204,14 +201,18 @@ export default {
     },
   },
   computed: {
-    ...mapGetters([
-      'isModalEventVisible',
-      'isConfirmModalVisible',
-      'selectedEvent',
-      'selectedDate',
-    ]),
+    ...mapGetters({
+      allGroups: 'groups/allGroups',
+      allTasks: 'tasks/allTasks',
+      selectedEvent: 'events/selectedEvent',
+      isModalEventVisible: 'events/isModalEventVisible',
+      selectedDate: 'events/selectedDate',
+      isConfirmModalVisible: 'modals/isConfirmModalVisible',
+    }),
     tasksWithEvents() {
-      return this.tasks.filter((task) => this.events.some((event) => event.type_event === task.id))
+      return this.allTasks.filter((task) =>
+        this.events.some((event) => event.type_event === task.id),
+      )
     },
   },
   mounted() {
@@ -228,13 +229,18 @@ export default {
   },
 
   methods: {
-    ...mapActions(['openConfirmModal', 'closeConfirmModal', 'closeModalEvent']),
+    ...mapActions({
+      openModalEvent: 'events/openModalEvent',
+      closeModalEvent: 'events/closeModalEvent',
+      openConfirmModal: 'modals/openConfirmModal',
+      closeConfirmModal: 'modals/closeConfirmModal',
+      setEvent: 'events/setEvent',
+      setEventType: 'events/setEventType',
+    }),
     triggerConfirmModal(event, type) {
-      this.openConfirmModal({
-        id: event.id,
-        name: event.name,
-        type,
-      })
+      this.openConfirmModal()
+      this.setEvent(event) // Uložení vybrané události do Vuex
+      this.setEventType(type)
     },
     handleKeyPress(event) {
       // Zkontrolujeme, jestli cílový prvek (kam uživatel píše) není formulářový element
@@ -260,7 +266,8 @@ export default {
       }
     },
     close() {
-      this.$store.dispatch('closeModalEvent') // Akce Vuex
+      this.closeModalEvent() // Akce Vuex
+      this.bFormShow = false
     },
     getClassByGroupId,
     formatDateCZ,
@@ -279,8 +286,9 @@ export default {
     },
 
     editEvent(event) {
+      console.log('Událost k editaci:', event)
       this.bFormShow = true
-      this.editedEvent = { ...event } // Zkopíruj data skupiny do editedGroup
+      this.editedEvent = { ...event } // Zkopíruj data skupiny do editedEvent
       this.titleForm = 'Editovat úkol'
       this.btnForm = 'Opravit úkol'
     },
@@ -331,7 +339,6 @@ export default {
       }
     },
     async insertEvent(event) {
-      console.log('Událost k vložení:', event)
       try {
         // Odešleme požadavek POST s daty události na server
         const response = await axios.post('http://localhost:3000/api/events', {
@@ -352,29 +359,18 @@ export default {
 
         // Emitujeme události rodičovské komponentě
 
-        this.$emit('fetchEvents', this.event)
+        this.$store.dispatch('events/fetchEvents')
         this.fetchEventsOfDay()
 
-        this.editedEvent.id = response.data.Values.id // Nastavíme ID úkolu na ID z odpovědi
-        console.log('Událost byla úspěšně přidána:', response.data)
+        this.editedEvent.id = response.data.id // Nastavíme ID úkolu na ID z odpovědi
+        this.resetEditedEvent() // Resetujeme formulář
+        console.log('Událost byla úspěšně přidána/opravena:', response.data)
       } catch (error) {
         console.error('Chyba při přidávání události:', error)
 
         // Zobrazíme uživateli chybovou zprávu (pokud je potřeba)
         this.$emit('errorOccurred', 'Nepodařilo se přidat událost.')
       }
-    },
-    handleDeleteX({ id, type }) {
-      const endpoint = `http://localhost:3000/api/${type}/${id}/disable`
-      axios
-        .put(endpoint, { disabled: 1 })
-        .then(() => {
-          console.log(`${type} položka s ID ${id} byla deaktivována.`)
-          this.fetchEvents() // Aktualizace zobrazení
-        })
-        .catch((error) => {
-          console.error('Chyba při deaktivaci položky:', error)
-        })
     },
   },
 }

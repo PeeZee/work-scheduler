@@ -9,10 +9,10 @@
 
     <!-- Sekce s nastavením -->
     <div class="sidebar--settings">
-      <h2 class="text-left text-xl mb-1 cursor-pointer" @click="bShowSettsings = !bShowSettsings">
+      <h2 class="text-left text-xl mb-1 cursor-pointer" @click="bShowSettings = !bShowSettings">
         <i class="fas fa-cog"></i> Nastavení
       </h2>
-      <ul v-if="bShowSettsings">
+      <ul v-if="bShowSettings">
         <li>
           <a-button class="w-full" @click="triggerModalGroupTasks">Nová skupina úkolů</a-button>
         </li>
@@ -23,23 +23,36 @@
 </template>
 
 <script>
+import { mapGetters, mapActions } from 'vuex'
+import { Button } from 'ant-design-vue'
+
 export default {
   name: 'Sidebar_skelet',
-  props: {
-    displayedMonth: String,
-    currentYear: Number,
+  components: {
+    'a-button': Button,
   },
   data() {
     return {
-      bShowSettsings: false,
+      bShowSettings: true,
     }
   },
+  computed: {
+    ...mapGetters({
+      displayedMonth: 'view/displayedMonth', // Přímý přístup k Vuex getteru
+      currentYear: 'view/currentYear',
+    }),
+  },
   methods: {
+    ...mapActions({
+      openModalGroupTasks: 'modals/openModalGroupTasks',
+      openModalTasks: 'modals/openModalTasks',
+    }),
+
     triggerModalGroupTasks() {
-      this.$emit('triggerModalGroupTasks')
+      this.openModalGroupTasks()
     },
     triggerModalTasks() {
-      this.$emit('triggerModalTasks')
+      this.openModalTasks()
     },
   },
 }
@@ -47,8 +60,7 @@ export default {
 
 <style scoped>
 .sidebar {
-  width: 250px;
+  width: 300px;
   background-color: #f4f4f4;
-  padding: 10px;
 }
 </style>
