@@ -66,7 +66,7 @@
 
                   <button
                     @click.stop.prevent="triggerConfirmModal(event, 'events')"
-                    class="group-hover:block w-5 h-5 group-hover:bg-red-500 text-white rounded-full text-[10px] absolute top-[10px] right-0 cursor-pointer flex items-center justify-center"
+                    class="group-hover:block w-5 h-5 group-hover:bg-red-500 text-white rounded-full text-[10px] absolute top-[5px] right-0 cursor-pointer flex items-center justify-center"
                   >
                     <i
                       class="fas fa-trash opacity-50 group-hover:opacity-100 text-gray-400 group-hover:text-white"
