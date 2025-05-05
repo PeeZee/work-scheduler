@@ -18,6 +18,24 @@
         </li>
         <li><a-button class="w-full" @click="triggerModalTasks">Nový typ úkolu</a-button></li>
       </ul>
+      <ul>
+        <li>
+          <a
+            class="text-xs"
+            href="https://tailwindcss.com/docs/installation/using-vite"
+            target="_blank"
+            >Tailwind CSS</a
+          >&nbsp;|&nbsp;
+          <a class="text-xs" href="https://antdv.com/components/overview" target="_blank"
+            >Ant Design Vue</a
+          >&nbsp;|&nbsp;
+          <a class="text-xs" href="https://fontawesome.com/icons" target="_blank">Awesome Icons</a
+          >&nbsp;|&nbsp;
+          <a class="text-xs" href="https://floating-vue.starpad.dev/guide/" target="_blank"
+            >Floating-Vue</a
+          >
+        </li>
+      </ul>
     </div>
   </aside>
 </template>
