@@ -33,7 +33,7 @@ export default {
   },
   data() {
     return {
-      bShowSettings: true,
+      bShowSettings: false,
     }
   },
   computed: {

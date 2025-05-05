@@ -66,9 +66,13 @@
 
                   <button
                     @click.stop.prevent="triggerConfirmModal(event, 'events')"
-                    class="hidden group-hover:block px-2 py-1 bg-gray-500 text-white rounded-lg text-[10px] absolute top-[2px] right-1 cursor-pointer"
+                    class="group-hover:block w-5 h-5 group-hover:bg-red-500 text-white rounded-full text-[10px] absolute top-[10px] right-0 cursor-pointer flex items-center justify-center"
                   >
-                    <i class="fas fa-trash"></i>
+                    <i
+                      class="fas fa-trash opacity-50 group-hover:opacity-100 text-gray-400 group-hover:text-white"
+                      v-tooltip.auto="'Kliknutím položku odstraníš'"
+                      @mouseenter.stop
+                    ></i>
                   </button>
                 </li>
               </ul>
@@ -145,9 +149,13 @@
 
               <button
                 @click.stop.prevent="triggerConfirmModal(event, 'events')"
-                class="hidden group-hover:block px-2 py-1 bg-gray-500 text-white rounded-lg text-[10px] absolute top-[5px] right-1 cursor-pointer"
+                class="group-hover:block w-7 h-7 group-hover:bg-red-500 text-white rounded-full text-[14px] absolute top-[10px] right-1 cursor-pointer flex items-center justify-center"
               >
-                <i class="fas fa-trash"></i>
+                <i
+                  class="fas fa-trash opacity-50 group-hover:opacity-100 text-gray-400 group-hover:text-white"
+                  v-tooltip.auto="'Kliknutím položku odstraníš'"
+                  @mouseenter.stop
+                ></i>
               </button>
             </div>
           </div>
